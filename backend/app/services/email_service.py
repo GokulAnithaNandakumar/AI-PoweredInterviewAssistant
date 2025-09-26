@@ -1,9 +1,13 @@
 import os
 import asyncio
 import logging
+import smtplib
 from typing import Optional
 from email.message import EmailMessage
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from aiosmtplib import SMTP
+import ssl
 from app.core.config import settings
 
 # Setup logging
@@ -19,32 +23,175 @@ class EmailService:
         self.smtp_password = settings.MAIL_PASSWORD
         self.mail_from = settings.MAIL_FROM
         self.mail_from_name = settings.MAIL_FROM_NAME
-        
+
         logger.info(f"📧 Email service initialized:")
         logger.info(f"   SMTP Host: {self.smtp_host}:{self.smtp_port}")
         logger.info(f"   From: {self.mail_from}")
 
-    async def send_email(self, to_email: str, subject: str, body: str):
-        """Send email using SMTP - your proven working method"""
+    async def send_email_async_method1(self, to_email: str, subject: str, body: str):
+        """Method 1: Async SMTP with STARTTLS (Port 587) - 60s timeout"""
         try:
             msg = EmailMessage()
             msg["From"] = self.smtp_user
             msg["To"] = to_email
             msg["Subject"] = subject
             msg.set_content(body, subtype='html')
-            
-            logger.info(f"📧 Sending email to {to_email} via SMTP...")
-            
-            async with SMTP(hostname=self.smtp_host, port=self.smtp_port, start_tls=True, timeout=30) as smtp:
+
+            logger.info(f"📧 Method 1: Trying async SMTP STARTTLS (587) to {to_email}...")
+
+            async with SMTP(hostname=self.smtp_host, port=587, start_tls=True, timeout=60) as smtp:
                 await smtp.login(self.smtp_user, self.smtp_password)
                 await smtp.send_message(msg)
-                
-            logger.info(f"✅ Email sent successfully to {to_email}")
+
+            logger.info(f"✅ Method 1 SUCCESS: Email sent to {to_email}")
             return True
-            
+
         except Exception as e:
-            logger.error(f"❌ Failed to send email to {to_email}: {str(e)}")
+            logger.warning(f"⚠️ Method 1 FAILED: {str(e)}")
             return False
+
+    async def send_email_async_method2(self, to_email: str, subject: str, body: str):
+        """Method 2: Async SMTP with SSL (Port 465) - 60s timeout"""
+        try:
+            msg = EmailMessage()
+            msg["From"] = self.smtp_user
+            msg["To"] = to_email
+            msg["Subject"] = subject
+            msg.set_content(body, subtype='html')
+
+            logger.info(f"📧 Method 2: Trying async SMTP SSL (465) to {to_email}...")
+
+            async with SMTP(hostname=self.smtp_host, port=465, use_tls=True, timeout=60) as smtp:
+                await smtp.login(self.smtp_user, self.smtp_password)
+                await smtp.send_message(msg)
+
+            logger.info(f"✅ Method 2 SUCCESS: Email sent to {to_email}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"⚠️ Method 2 FAILED: {str(e)}")
+            return False
+
+    def send_email_sync_method3(self, to_email: str, subject: str, body: str):
+        """Method 3: Synchronous SMTP with STARTTLS (Port 587) - blocking"""
+        try:
+            msg = MIMEMultipart('alternative')
+            msg["From"] = self.smtp_user
+            msg["To"] = to_email
+            msg["Subject"] = subject
+
+            # Add HTML content
+            html_part = MIMEText(body, 'html')
+            msg.attach(html_part)
+
+            logger.info(f"📧 Method 3: Trying sync SMTP STARTTLS (587) to {to_email}...")
+
+            # Create SMTP connection with extended timeout
+            server = smtplib.SMTP(self.smtp_host, 587, timeout=120)
+            server.starttls()
+            server.login(self.smtp_user, self.smtp_password)
+            server.send_message(msg)
+            server.quit()
+
+            logger.info(f"✅ Method 3 SUCCESS: Email sent to {to_email}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"⚠️ Method 3 FAILED: {str(e)}")
+            return False
+
+    def send_email_sync_method4(self, to_email: str, subject: str, body: str):
+        """Method 4: Synchronous SMTP with SSL (Port 465) - blocking"""
+        try:
+            msg = MIMEMultipart('alternative')
+            msg["From"] = self.smtp_user
+            msg["To"] = to_email
+            msg["Subject"] = subject
+
+            # Add HTML content
+            html_part = MIMEText(body, 'html')
+            msg.attach(html_part)
+
+            logger.info(f"📧 Method 4: Trying sync SMTP SSL (465) to {to_email}...")
+
+            # Create SSL context
+            context = ssl.create_default_context()
+
+            # Create SMTP connection with SSL
+            server = smtplib.SMTP_SSL(self.smtp_host, 465, context=context, timeout=120)
+            server.login(self.smtp_user, self.smtp_password)
+            server.send_message(msg)
+            server.quit()
+
+            logger.info(f"✅ Method 4 SUCCESS: Email sent to {to_email}")
+            return True
+
+        except Exception as e:
+            logger.warning(f"⚠️ Method 4 FAILED: {str(e)}")
+            return False
+
+    async def send_email(self, to_email: str, subject: str, body: str):
+        """Send email using multiple fallback methods with extended timeouts"""
+
+        # Method 1: Async SMTP STARTTLS (Port 587) - 60s timeout
+        try:
+            result = await asyncio.wait_for(
+                self.send_email_async_method1(to_email, subject, body),
+                timeout=65.0
+            )
+            if result:
+                return True
+        except asyncio.TimeoutError:
+            logger.warning("⏰ Method 1 timed out after 65 seconds")
+        except Exception as e:
+            logger.warning(f"⚠️ Method 1 error: {e}")
+
+        # Method 2: Async SMTP SSL (Port 465) - 60s timeout
+        try:
+            result = await asyncio.wait_for(
+                self.send_email_async_method2(to_email, subject, body),
+                timeout=65.0
+            )
+            if result:
+                return True
+        except asyncio.TimeoutError:
+            logger.warning("⏰ Method 2 timed out after 65 seconds")
+        except Exception as e:
+            logger.warning(f"⚠️ Method 2 error: {e}")
+
+        # Method 3: Sync SMTP STARTTLS (Port 587) - 120s timeout
+        try:
+            result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, self.send_email_sync_method3, to_email, subject, body
+                ),
+                timeout=125.0
+            )
+            if result:
+                return True
+        except asyncio.TimeoutError:
+            logger.warning("⏰ Method 3 timed out after 125 seconds")
+        except Exception as e:
+            logger.warning(f"⚠️ Method 3 error: {e}")
+
+        # Method 4: Sync SMTP SSL (Port 465) - 120s timeout
+        try:
+            result = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, self.send_email_sync_method4, to_email, subject, body
+                ),
+                timeout=125.0
+            )
+            if result:
+                return True
+        except asyncio.TimeoutError:
+            logger.warning("⏰ Method 4 timed out after 125 seconds")
+        except Exception as e:
+            logger.warning(f"⚠️ Method 4 error: {e}")
+
+        # All methods failed
+        logger.error(f"❌ ALL EMAIL METHODS FAILED for {to_email}")
+        return False
 
     @staticmethod
     async def send_interview_link(
@@ -133,9 +280,9 @@ class EmailService:
 
                 <div class="content">
                     <p>Hello <span class="highlight">{candidate_name}</span>,</p>
-                    
+
                     <p>Congratulations! You've been invited to participate in an AI-powered technical interview. Our intelligent system will guide you through a comprehensive assessment designed to evaluate your skills and capabilities.</p>
-                    
+
                     <p><strong>What to expect:</strong></p>
                     <ul>
                         <li>🤖 AI-powered interview questions tailored to your profile</li>
@@ -143,15 +290,15 @@ class EmailService:
                         <li>💡 Dynamic difficulty adjustment based on your answers</li>
                         <li>📊 Real-time evaluation and feedback</li>
                     </ul>
-                    
+
                     <p>Click the button below to begin your interview:</p>
-                    
+
                     <div style="text-align: center;">
                         <a href="{interview_link}" class="cta-button">Start Interview Now</a>
                     </div>
-                    
+
                     <p><strong>Note:</strong> Please ensure you have a stable internet connection and are in a quiet environment before starting the interview.</p>
-                    
+
                     <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
                     <p style="word-break: break-all; color: #1976d2;">{interview_link}</p>
                 </div>
@@ -172,12 +319,12 @@ class EmailService:
             subject="🎯 Your AI Interview Invitation - Ready to Start!",
             body=html_body
         )
-        
+
         if success:
             logger.info(f"✅ Interview invitation sent successfully to {candidate_email}")
         else:
             logger.error(f"❌ Failed to send interview invitation to {candidate_email}")
-            
+
         return success
 
 # Create singleton instance
