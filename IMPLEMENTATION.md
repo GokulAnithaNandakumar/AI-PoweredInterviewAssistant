@@ -165,7 +165,7 @@ npm run dev
 http://localhost:8000/docs  # Interactive API documentation
 
 # Frontend will be available at:
-https://ai-powered-interview-assistant-chi.vercel.app       # React development server
+http://localhost:5173       # React development server
 ```
 
 ## 🎯 **System Flow**

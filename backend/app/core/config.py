@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
     # CORS
-    CORS_ORIGINS: List[str] = ["https://ai-powered-interview-assistant-chi.vercel.app", "http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     # WebSocket
-    WEBSOCKET_ORIGINS: List[str] = ["https://ai-powered-interview-assistant-chi.vercel.app", "http://localhost:3000"]
+    WEBSOCKET_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     # Email Configuration
     MAIL_USERNAME: str = ""

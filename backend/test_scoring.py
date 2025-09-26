@@ -17,13 +17,16 @@ def test_scoring_and_summary():
     """Test scoring calculation and summary generation"""
     engine = create_engine(settings.DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
+def test_scoring():
     db = SessionLocal()
+    
     try:
-        # Get the latest session
-        session = db.query(InterviewSession).order_by(InterviewSession.id.desc()).first()
+        # Test with session 16
+        session_id = 16
+        session = db.query(InterviewSession).filter(InterviewSession.id == session_id).first()
+        
         if not session:
-            print("No interview sessions found")
+            print(f"Session {session_id} not found!")
             return
         
         print(f"Testing session ID: {session.id}")

@@ -36,30 +36,30 @@ def test_fresh_session():
         
         # Create questions directly in database
         test_questions = [
-            {"question": "What is your name?", "difficulty": "easy", "max_time": 20},
-            {"question": "What are HTTP methods?", "difficulty": "medium", "max_time": 60},
-            {"question": "Explain React state management", "difficulty": "hard", "max_time": 120}
+            {"question_text": "What is your name?", "difficulty": "easy", "time_limit": 20},
+            {"question_text": "What are HTTP methods?", "difficulty": "medium", "time_limit": 60},
+            {"question_text": "Explain React state management", "difficulty": "hard", "time_limit": 120}
         ]
         
         # Add questions to session
         for i, q in enumerate(test_questions):
             question = InterviewQuestion(
                 session_id=session.id,
-                question=q["question"],
+                question_text=q["question_text"],
                 difficulty=q["difficulty"],
-                max_time=q["max_time"],
-                order=i + 1
+                time_limit=q["time_limit"],
+                question_number=i + 1
             )
             db.add(question)
             db.commit()
             db.refresh(question)
-            print(f"Added question {i+1}: {question.question}")
+            print(f"Added question {i+1}: {question.question_text}")
             
             # Add sample answer
             answer = InterviewAnswer(
                 session_id=session.id,
                 question_id=question.id,
-                answer=f"Test answer for question {i+1}",
+                answer_text=f"Test answer for question {i+1}",
                 time_taken=30,
                 score=8.0,
                 ai_feedback=f"Good answer for question {i+1}. Shows understanding."
