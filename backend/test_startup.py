@@ -23,39 +23,39 @@ try:
     print("✅ Configuration loaded successfully")
     print(f"   CORS Origins: {settings.get_cors_origins()}")
     print(f"   Database URL: {settings.DATABASE_URL[:50]}...")
-    
+
     # Test app creation (but don't actually start the server)
     print("\nTesting FastAPI app creation...")
-    
+
     # Mock the database operations that might fail
     from app import models
-    import app.core.database
-    
+    from app.core import database
+
     # Override the database operations to prevent actual DB connection
     original_create_all = models.Base.metadata.create_all
-    original_create_admin = app.core.database.create_default_admin
-    
+    original_create_admin = database.create_default_admin
+
     def mock_create_all(*args, **kwargs):
         print("✅ Mock: Database tables creation (skipped)")
-        
+
     def mock_create_admin(*args, **kwargs):
         print("✅ Mock: Default admin creation (skipped)")
-    
+
     models.Base.metadata.create_all = mock_create_all
-    app.core.database.create_default_admin = mock_create_admin
-    
+    database.create_default_admin = mock_create_admin
+
     # Import and create the app
-    from main import app
+    from main import app as fastapi_app
     print("✅ FastAPI app created successfully")
-    print(f"   App title: {app.title}")
-    print(f"   App version: {app.version}")
-    
+    print(f"   App title: {fastapi_app.title}")
+    print(f"   App version: {fastapi_app.version}")
+
     # Restore original functions
-    app.models.Base.metadata.create_all = original_create_all
-    app.core.database.create_default_admin = original_create_admin
-    
+    models.Base.metadata.create_all = original_create_all
+    database.create_default_admin = original_create_admin
+
     print("\n🎉 All tests passed! The app should start correctly on Render.")
-    
+
 except Exception as e:
     print(f"❌ Error during app initialization: {e}")
     print(f"Error type: {type(e).__name__}")

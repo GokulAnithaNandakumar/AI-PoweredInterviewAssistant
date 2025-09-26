@@ -74,7 +74,7 @@ class InterviewService:
                 session.resume_filename = candidate_info['resume_filename']
             if candidate_info.get('resume_content'):
                 session.resume_content = candidate_info['resume_content']
-            
+
             # Update new fields
             if candidate_info.get('resume_url'):
                 session.resume_url = candidate_info['resume_url']
@@ -157,7 +157,7 @@ class InterviewService:
         scores = [answer.score for answer in answers if answer.score is not None]
         if not scores:
             return 0.0
-            
+
         avg_score = sum(scores) / len(scores)
         return round(avg_score, 2)
 
@@ -221,10 +221,10 @@ class InterviewService:
                 )
                 db.add(new_answer)
                 print(f"Created new answer for Q{answer_data['question_number']}: score={new_answer.score}")
-            
+
             db.commit()
             return True
-            
+
         except Exception as e:
             print(f"Error saving answer: {e}")
             db.rollback()
@@ -238,12 +238,12 @@ class InterviewService:
             session = db.query(InterviewSession).filter(InterviewSession.id == session_id).first()
             if not session:
                 return {"error": "Session not found"}
-            
+
             # Get all answers with their feedback
             answers = db.query(InterviewAnswer).join(InterviewQuestion).filter(
                 InterviewAnswer.session_id == session_id
             ).order_by(InterviewQuestion.question_number).all()
-            
+
             if not answers:
                 return {
                     "overall_score": 0,
@@ -252,19 +252,19 @@ class InterviewService:
                     "total_questions": 0,
                     "answered_questions": 0
                 }
-            
+
             # Calculate statistics
             total_questions = 6  # Expected questions
             answered_questions = len(answers)
             scores = [answer.score for answer in answers if answer.score is not None]
             avg_score = sum(scores) / len(scores) if scores else 0
-            
+
             # Collect all AI feedback
             feedback_summary = []
             for answer in answers:
                 if answer.ai_feedback:
                     feedback_summary.append(f"Q{answer.question.question_number}: {answer.ai_feedback}")
-            
+
             # Generate recommendation based on average score
             if avg_score >= 7:
                 recommendation = "Move Forward"
@@ -275,7 +275,7 @@ class InterviewService:
             else:
                 recommendation = "Reject"
                 verdict_reason = "Below expectations for the technical requirements."
-            
+
             return {
                 "overall_score": round(avg_score, 1),
                 "recommendation": recommendation,
@@ -285,7 +285,7 @@ class InterviewService:
                 "detailed_feedback": feedback_summary,
                 "verdict_reason": verdict_reason
             }
-            
+
         except Exception as e:
             print(f"Error generating interview summary: {e}")
             return {
@@ -302,7 +302,7 @@ class InterviewService:
             answers = db.query(InterviewAnswer).join(InterviewQuestion).filter(
                 InterviewAnswer.session_id == session_id
             ).order_by(InterviewQuestion.question_number).all()
-            
+
             questions_and_answers = []
             for answer in answers:
                 questions_and_answers.append({
@@ -313,7 +313,7 @@ class InterviewService:
                     'time_taken': answer.time_taken,
                     'score': answer.score
                 })
-            
+
             return questions_and_answers
         except Exception as e:
             print(f"Error getting session answers: {e}")

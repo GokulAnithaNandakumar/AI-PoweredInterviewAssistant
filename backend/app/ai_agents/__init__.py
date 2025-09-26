@@ -88,7 +88,7 @@ class ResumeStorageService:
             return result["secure_url"]
         except Exception as e:
             raise Exception(f"Failed to upload resume: {str(e)}")
-    
+
     @staticmethod
     def upload_resume(file_content: bytes, filename: str, candidate_name: str) -> Dict[str, str]:
         """Legacy method - use store_resume instead."""

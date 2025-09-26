@@ -12,28 +12,28 @@ import json
 
 def regenerate_session_16():
     db = SessionLocal()
-    
+
     try:
         session_id = 16
-        
+
         # Check if session exists
         session = db.query(InterviewSession).filter(InterviewSession.id == session_id).first()
         if not session:
             print(f"Session {session_id} not found")
             return
-            
+
         print(f"Current session {session_id} status: {session.status}")
         print(f"Current total_score: {session.total_score}")
         print(f"Current ai_summary exists: {session.ai_summary is not None}")
-        
+
         # Calculate current total score
         current_score = InterviewService.calculate_total_score(db, session_id)
         print(f"Recalculated score: {current_score}")
-        
+
         # Generate fresh summary
         summary = InterviewService.generate_interview_summary(db, session_id)
         print(f"Generated summary: {summary}")
-        
+
         # Update the session with fresh data
         InterviewService.update_session_status(
             db, session_id, "completed",
@@ -48,19 +48,19 @@ def regenerate_session_16():
                 "verdict_reason": summary.get('verdict_reason', 'No detailed analysis available')
             })
         )
-        
+
         print("\n✅ Session 16 successfully updated with fresh AI summary!")
-        
+
         # Verify the update
         updated_session = db.query(InterviewSession).filter(InterviewSession.id == session_id).first()
         print(f"Updated ai_summary exists: {updated_session.ai_summary is not None}")
         print(f"Updated student_ai_summary exists: {updated_session.student_ai_summary is not None}")
-        
+
         if updated_session.ai_summary:
             summary_data = json.loads(updated_session.ai_summary)
             print(f"Final recommendation: {summary_data.get('recommendation', 'Unknown')}")
             print(f"Overall score: {summary_data.get('overall_score', 'Unknown')}")
-            
+
     except Exception as e:
         print(f"Error: {e}")
         db.rollback()

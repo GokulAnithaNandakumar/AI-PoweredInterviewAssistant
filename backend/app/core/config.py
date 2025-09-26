@@ -4,6 +4,9 @@ import json
 import os
 
 class Settings(BaseSettings):
+    # Server Configuration
+    PORT: int = 8000
+
     # Database
     DATABASE_URL: str = "postgresql://username:password@localhost:5432/interview_db"
 

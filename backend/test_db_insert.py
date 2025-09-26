@@ -18,7 +18,7 @@ def test_data_insertion():
     """Test if we can manually insert data into interview_sessions"""
     engine = create_engine(settings.DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
+
     db = SessionLocal()
     try:
         # Find an interviewer

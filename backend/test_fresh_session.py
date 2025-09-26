@@ -13,11 +13,11 @@ import uuid
 
 def test_fresh_session():
     db = SessionLocal()
-    
+
     try:
         # Create a fresh test session directly in database
         session_token = f"test-session-{uuid.uuid4().hex[:12]}"
-        
+
         # Create session directly
         session = InterviewSession(
             interviewer_id=1,  # Assume interviewer exists
@@ -28,19 +28,19 @@ def test_fresh_session():
             current_question_index=0,
             total_score=0
         )
-        
+
         db.add(session)
         db.commit()
         db.refresh(session)
         print(f"Created new session ID: {session.id}")
-        
+
         # Create questions directly in database
         test_questions = [
             {"question_text": "What is your name?", "difficulty": "easy", "time_limit": 20},
             {"question_text": "What are HTTP methods?", "difficulty": "medium", "time_limit": 60},
             {"question_text": "Explain React state management", "difficulty": "hard", "time_limit": 120}
         ]
-        
+
         # Add questions to session
         for i, q in enumerate(test_questions):
             question = InterviewQuestion(
@@ -54,7 +54,7 @@ def test_fresh_session():
             db.commit()
             db.refresh(question)
             print(f"Added question {i+1}: {question.question_text}")
-            
+
             # Add sample answer
             answer = InterviewAnswer(
                 session_id=session.id,
@@ -68,18 +68,18 @@ def test_fresh_session():
             db.commit()
             db.refresh(answer)
             print(f"Added answer {i+1}: score={answer.score}")
-            
+
         # Manually trigger completion logic
         print("\n--- Testing completion logic ---")
-        
+
         # Calculate total score
         total_score = InterviewService.calculate_total_score(db, session.id)
         print(f"Total score: {total_score}")
-        
+
         # Generate summary
         summary = InterviewService.generate_interview_summary(db, session.id)
         print(f"Generated summary: {summary}")
-        
+
         # Update session with completion data
         InterviewService.update_session_status(
             db, session.id, "completed",
@@ -94,9 +94,9 @@ def test_fresh_session():
                 "verdict_reason": summary.get('verdict_reason', 'No detailed analysis available')
             })
         )
-        
+
         print("Session completion updated successfully!")
-        
+
         # Verify the data was saved
         print("\n--- Verification ---")
         updated_session = db.query(InterviewSession).filter(InterviewSession.id == session.id).first()
@@ -104,10 +104,10 @@ def test_fresh_session():
         print(f"Final total_score: {updated_session.total_score}")
         print(f"AI summary stored: {updated_session.ai_summary is not None}")
         print(f"Student AI summary stored: {updated_session.student_ai_summary is not None}")
-        
+
         if updated_session.ai_summary:
             print(f"AI summary preview: {updated_session.ai_summary[:200]}...")
-            
+
     except Exception as e:
         print(f"Error: {e}")
         db.rollback()

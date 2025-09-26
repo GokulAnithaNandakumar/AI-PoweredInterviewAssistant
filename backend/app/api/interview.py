@@ -123,7 +123,7 @@ async def upload_resume(
         'resume_filename': resume.filename,
         'resume_summary': extracted_info  # Store all parsed data as JSON
     }
-    
+
     # Update session in database
     try:
         updated_session = InterviewService.update_candidate_info(db, session.id, update_data)
@@ -339,7 +339,7 @@ async def submit_answer(
     if question_number >= 6:
         # Ensure the last answer is committed before calculating score
         db.commit()
-        
+
         # Calculate total score from all answers
         total_score = InterviewService.calculate_total_score(db, session.id)
 

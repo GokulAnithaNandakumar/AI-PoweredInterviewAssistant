@@ -13,19 +13,19 @@ os.environ['WEBSOCKET_ORIGINS'] = 'https://example.com,http://localhost:3000'
 
 try:
     from app.core.config import settings
-    
+
     print("Testing CORS_ORIGINS parsing...")
     cors_origins = settings.get_cors_origins()
     print(f"CORS Origins: {cors_origins}")
     print(f"Type: {type(cors_origins)}")
-    
+
     print("\nTesting WEBSOCKET_ORIGINS parsing...")
     websocket_origins = settings.get_websocket_origins()
     print(f"WebSocket Origins: {websocket_origins}")
     print(f"Type: {type(websocket_origins)}")
-    
+
     print("\n✅ Configuration parsing successful!")
-    
+
 except Exception as e:
     print(f"❌ Configuration parsing failed: {e}")
     import traceback

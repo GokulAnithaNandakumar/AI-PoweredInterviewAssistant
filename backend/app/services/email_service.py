@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Email configuration
+# Email configuration with timeout and retry settings
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -18,7 +18,9 @@ conf = ConnectionConfig(
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
-    TEMPLATE_FOLDER=Path(__file__).parent / "templates"
+    TEMPLATE_FOLDER=Path(__file__).parent / "templates",
+    # Add timeout settings for Render deployment
+    TIMEOUT=60  # 60 second timeout instead of default
 )
 
 class EmailService:
@@ -170,12 +172,42 @@ class EmailService:
             # Initialize FastMail with the configuration
             fm = FastMail(conf)
 
-            # Send the email
-            await fm.send_message(message)
-
-            logger.info(f"✅ Email sent successfully to {candidate_email}")
-            return True
+            # Try to send the email with retry logic
+            import asyncio
+            
+            try:
+                # Send with timeout
+                await asyncio.wait_for(fm.send_message(message), timeout=30.0)
+                logger.info(f"✅ Email sent successfully to {candidate_email}")
+                return True
+                
+            except asyncio.TimeoutError:
+                logger.error(f"❌ Email timeout for {candidate_email} - trying alternative configuration")
+                
+                # Try alternative configuration (SSL instead of STARTTLS)
+                alt_conf = ConnectionConfig(
+                    MAIL_USERNAME=settings.MAIL_USERNAME,
+                    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+                    MAIL_FROM=settings.MAIL_FROM,
+                    MAIL_PORT=465,  # SSL port
+                    MAIL_SERVER=settings.MAIL_SERVER,
+                    MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
+                    MAIL_STARTTLS=False,
+                    MAIL_SSL_TLS=True,  # Use SSL instead
+                    USE_CREDENTIALS=True,
+                    TEMPLATE_FOLDER=Path(__file__).parent / "templates"
+                )
+                
+                fm_alt = FastMail(alt_conf)
+                await asyncio.wait_for(fm_alt.send_message(message), timeout=30.0)
+                logger.info(f"✅ Email sent successfully to {candidate_email} (via SSL)")
+                return True
 
         except Exception as e:
             logger.error(f"❌ Failed to send email to {candidate_email}: {str(e)}")
-            raise e
+            
+            # Log the interview link so it can be manually shared if email fails
+            logger.info(f"📧 Interview link for {candidate_email}: {interview_link}")
+            
+            # Don't raise the exception - let the session creation succeed even if email fails
+            return False

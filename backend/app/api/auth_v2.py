@@ -159,22 +159,28 @@ async def create_interview_session(
     db.refresh(new_session)
 
     # Send email to candidate
+    email_sent = False
     try:
         from app.services.email_service import EmailService
 
         interview_link = f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}"
 
-        await EmailService.send_interview_link(
+        email_sent = await EmailService.send_interview_link(
             candidate_email=session_data.candidate_email,
             candidate_name=session_data.candidate_name or "Candidate",
             interview_link=interview_link,
             interviewer_name=current_user.full_name or current_user.username
         )
-        print(f"✅ Email sent successfully to {session_data.candidate_email}")
+        
+        if email_sent:
+            print(f"✅ Email sent successfully to {session_data.candidate_email}")
+        else:
+            print(f"⚠️ Email failed to send to {session_data.candidate_email}")
+            
     except Exception as e:
         # Log error but don't fail the session creation
         print(f"❌ Failed to send email: {e}")
-        # For development, we'll continue without failing
+        email_sent = False
 
     return {
         "id": new_session.id,
@@ -183,7 +189,9 @@ async def create_interview_session(
         "candidate_name": new_session.candidate_name,
         "status": new_session.status,
         "created_at": new_session.created_at,
-        "message": "Interview session created and email sent successfully"
+        "interview_link": f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}",
+        "email_sent": email_sent,
+        "message": f"Interview session created {'and email sent' if email_sent else '- please share the interview link manually'}"
     }
 
 @router.get("/me")

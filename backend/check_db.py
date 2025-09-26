@@ -38,9 +38,9 @@ def check_database():
             # Check a specific session if exists
             if count > 0:
                 result = connection.execute(text("""
-                    SELECT id, candidate_name, resume_url, resume_summary, ai_summary, total_score 
-                    FROM interview_sessions 
-                    ORDER BY id DESC 
+                    SELECT id, candidate_name, resume_url, resume_summary, ai_summary, total_score
+                    FROM interview_sessions
+                    ORDER BY id DESC
                     LIMIT 3
                 """))
                 sessions = result.fetchall()
