@@ -1,29 +1,68 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from app.core.config import settings
-from pathlib import Path
+import os
+import asyncio
 import logging
+from email.message import EmailMessage
+from aiosmtplib import SMTP
+from app.core.config import settings
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Email configuration with timeout and retry settings
-conf = ConnectionConfig(
-    MAIL_USERNAME=settings.MAIL_USERNAME,
-    MAIL_PASSWORD=settings.MAIL_PASSWORD,
-    MAIL_FROM=settings.MAIL_FROM,
-    MAIL_PORT=settings.MAIL_PORT,
-    MAIL_SERVER=settings.MAIL_SERVER,
-    MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    TEMPLATE_FOLDER=Path(__file__).parent / "templates",
-    # Add timeout settings for Render deployment
-    TIMEOUT=60  # 60 second timeout instead of default
-)
-
 class EmailService:
+    def __init__(self):
+        self.smtp_host = settings.MAIL_SERVER
+        self.smtp_port = settings.MAIL_PORT
+        self.smtp_user = settings.MAIL_USERNAME
+        self.smtp_password = settings.MAIL_PASSWORD
+        self.mail_from = settings.MAIL_FROM
+        self.mail_from_name = settings.MAIL_FROM_NAME
+
+    async def _send_email(self, to_email: str, subject: str, body: str, html_body: str = None):
+        """Send email using aiosmtplib with proper error handling."""
+        try:
+            msg = EmailMessage()
+            msg["From"] = f"{self.mail_from_name} <{self.mail_from}>"
+            msg["To"] = to_email
+            msg["Subject"] = subject
+            
+            # Set both plain text and HTML content
+            msg.set_content(body)
+            if html_body:
+                msg.add_alternative(html_body, subtype='html')
+
+            # Try STARTTLS first (port 587)
+            try:
+                async with SMTP(
+                    hostname=self.smtp_host, 
+                    port=self.smtp_port, 
+                    start_tls=True,
+                    timeout=15.0  # 15 second timeout
+                ) as smtp:
+                    await smtp.login(self.smtp_user, self.smtp_password)
+                    await smtp.send_message(msg)
+                    logger.info(f"✅ Email sent successfully to {to_email} via STARTTLS")
+                    return True
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ STARTTLS failed for {to_email}, trying SSL: {str(e)}")
+                
+                # Try SSL as fallback (port 465)
+                async with SMTP(
+                    hostname=self.smtp_host,
+                    port=465,
+                    use_tls=True,  # Use SSL instead of STARTTLS
+                    timeout=15.0
+                ) as smtp:
+                    await smtp.login(self.smtp_user, self.smtp_password)
+                    await smtp.send_message(msg)
+                    logger.info(f"✅ Email sent successfully to {to_email} via SSL")
+                    return True
+
+        except Exception as e:
+            logger.error(f"❌ Failed to send email to {to_email}: {str(e)}")
+            return False
+
     @staticmethod
     async def send_interview_link(
         candidate_email: str,
@@ -31,9 +70,12 @@ class EmailService:
         interview_link: str,
         interviewer_name: str = "AI Interview Team"
     ):
-        """Send interview link to candidate via email."""
+        """Send interview link to candidate via email using aiosmtplib."""
 
         logger.info(f"Sending interview email to {candidate_email}")
+
+        # Create email service instance
+        email_service = EmailService()
 
         # Create HTML body for email
         html_body = f"""
@@ -160,61 +202,32 @@ class EmailService:
         """
 
         try:
-            # Create message
-            message = MessageSchema(
-                subject="🎯 Your AI Interview Invitation - Get Started Now!",
-                recipients=[candidate_email],
-                body=text_body,
-                html=html_body,
-                subtype="html"
+            # Use the new aiosmtplib implementation with timeout
+            result = await asyncio.wait_for(
+                email_service._send_email(
+                    to_email=candidate_email,
+                    subject="🎯 Your AI Interview Invitation - Get Started Now!",
+                    body=text_body,
+                    html_body=html_body
+                ),
+                timeout=20.0  # Overall 20 second timeout
             )
-
-            # Initialize FastMail with the configuration
-            fm = FastMail(conf)
-
-            # Try to send the email with retry logic
-            import asyncio
             
-            try:
-                # Send with timeout
-                await asyncio.wait_for(fm.send_message(message), timeout=15.0)
+            if result:
                 logger.info(f"✅ Email sent successfully to {candidate_email}")
                 return True
-                
-            except (asyncio.TimeoutError, Exception) as e:
-                logger.error(f"❌ Email timeout/error for {candidate_email} - trying alternative configuration: {str(e)}")
-                
-                try:
-                    # Try alternative configuration (SSL instead of STARTTLS)
-                    alt_conf = ConnectionConfig(
-                        MAIL_USERNAME=settings.MAIL_USERNAME,
-                        MAIL_PASSWORD=settings.MAIL_PASSWORD,
-                        MAIL_FROM=settings.MAIL_FROM,
-                        MAIL_PORT=465,  # SSL port
-                        MAIL_SERVER=settings.MAIL_SERVER,
-                        MAIL_FROM_NAME=settings.MAIL_FROM_NAME,
-                        MAIL_STARTTLS=False,
-                        MAIL_SSL_TLS=True,  # Use SSL instead
-                        USE_CREDENTIALS=True,
-                        TEMPLATE_FOLDER=Path(__file__).parent / "templates"
-                    )
-                    
-                    fm_alt = FastMail(alt_conf)
-                    await asyncio.wait_for(fm_alt.send_message(message), timeout=15.0)
-                    logger.info(f"✅ Email sent successfully to {candidate_email} (via SSL)")
-                    return True
-                    
-                except Exception as alt_e:
-                    logger.error(f"❌ Alternative email method also failed for {candidate_email}: {str(alt_e)}")
-                    # Log the interview link so it can be manually shared if email fails
-                    logger.info(f"📧 Interview link for {candidate_email}: {interview_link}")
-                    return False
+            else:
+                logger.warning(f"⚠️ Email failed to send to {candidate_email}")
+                # Log the interview link for manual sharing
+                logger.info(f"📧 Interview link for {candidate_email}: {interview_link}")
+                return False
+
+        except asyncio.TimeoutError:
+            logger.error(f"⏰ Email operation timed out for {candidate_email}")
+            logger.info(f"📧 Interview link for {candidate_email}: {interview_link}")
+            return False
 
         except Exception as e:
             logger.error(f"❌ Failed to send email to {candidate_email}: {str(e)}")
-            
-            # Log the interview link so it can be manually shared if email fails
             logger.info(f"📧 Interview link for {candidate_email}: {interview_link}")
-            
-            # Don't raise the exception - let the session creation succeed even if email fails
             return False
