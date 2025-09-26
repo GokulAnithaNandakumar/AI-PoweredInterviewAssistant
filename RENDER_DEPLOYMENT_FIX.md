@@ -123,22 +123,55 @@ This ensures that:
 
 4. **Start Command**: Should be `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
+5. **Email Service**: Now includes fallback mechanisms and won't block session creation if email fails
+
+## Critical Points for Vercel
+
+1. **SPA Routing**: The `vercel.json` file is essential for client-side routing
+2. **Build Command**: `npm run build` (default Vite build)
+3. **Output Directory**: `dist` (default Vite output)
+4. **Node.js Version**: Use Node 18+ for best compatibility
+
 ## Test Results
 
-✅ Configuration parsing works correctly
-✅ FastAPI app starts without errors
-✅ CORS origins are properly parsed from environment variables
-✅ Port binding is dynamic and supports Render's PORT variable
+✅ Configuration parsing works correctly  
+✅ FastAPI app starts without errors  
+✅ CORS origins are properly parsed from environment variables  
+✅ Port binding is dynamic and supports Render's PORT variable  
+✅ Email service includes timeout and retry logic  
+✅ Frontend routing works with direct URL access  
+
+## Troubleshooting
+
+### If emails still don't work:
+1. Check Gmail app password is correct (not regular password)
+2. Try the alternative SMTP settings (port 465 with SSL)
+3. Check Render logs for specific error messages
+4. The interview link will be logged even if email fails
+
+### If frontend routes still 404:
+1. Ensure `vercel.json` is in the frontend root directory
+2. Redeploy the frontend after adding the file
+3. Check Vercel build logs for any errors
+4. Verify the build output directory is `dist`
 
 ## Next Steps
 
-1. Update your Render environment variables with the correct CORS_ORIGINS format
-2. Redeploy the service
-3. The service should now start successfully and bind to the correct port
+1. **Backend (Render)**: Update environment variables with correct CORS_ORIGINS format
+2. **Frontend (Vercel)**: Redeploy after adding `vercel.json`
+3. **Email**: Monitor logs to see if the retry logic helps with SMTP connections
+4. **Testing**: Try direct URL access after Vercel redeploys
 
 ## Health Check Endpoints
 
 Once deployed, these endpoints should be accessible:
 - `GET /` - Root endpoint with API info
-- `GET /health` - Health check endpoint
+- `GET /health` - Health check endpoint  
 - `GET /api/...` - Your API endpoints
+
+## Interview Links
+
+The API now returns the interview link directly in the response, so even if email fails, you can manually share:
+```
+https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}
+```

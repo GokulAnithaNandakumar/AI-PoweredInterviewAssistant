@@ -133,7 +133,7 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/info`);
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/info`);
       if (response.ok) {
         const data = await response.json();
         setSessionInfo(data);
@@ -212,7 +212,7 @@ const CandidateInterviewPage: React.FC = () => {
         const currentQuestion = questions[interviewState.currentQuestionIndex];
 
         // Auto-submit via API
-        fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
+        fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -300,7 +300,7 @@ const CandidateInterviewPage: React.FC = () => {
       const formData = new FormData();
       formData.append('resume', selectedFile);
 
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/upload-resume`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/upload-resume`, {
         method: 'POST',
         body: formData
       });
@@ -348,7 +348,7 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/candidate-info`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/candidate-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -382,7 +382,7 @@ const CandidateInterviewPage: React.FC = () => {
     setGeneratingQuestions(true);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/start-interview`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/start-interview`, {
         method: 'POST',
       });
 
@@ -471,7 +471,7 @@ const CandidateInterviewPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

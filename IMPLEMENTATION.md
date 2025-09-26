@@ -125,7 +125,7 @@ SECRET_KEY=your-256-bit-secret-key-here
 GEMINI_API_KEY=your-gemini-api-key-from-google-ai-studio
 
 # Frontend .env (already created)
-VITE_API_URL=http://localhost:8000/api
+VITE_API_URL=https://ai-poweredinterviewassistant.onrender.com/api
 ```
 
 ## 🏃‍♂️ **Immediate Startup Instructions**
