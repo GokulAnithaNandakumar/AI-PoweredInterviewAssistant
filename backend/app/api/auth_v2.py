@@ -158,18 +158,23 @@ async def create_interview_session(
     db.commit()
     db.refresh(new_session)
 
-    # Send email to candidate
+    # Send email to candidate with timeout protection
     email_sent = False
     try:
         from app.services.email_service import EmailService
+        import asyncio
 
         interview_link = f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}"
 
-        email_sent = await EmailService.send_interview_link(
-            candidate_email=session_data.candidate_email,
-            candidate_name=session_data.candidate_name or "Candidate",
-            interview_link=interview_link,
-            interviewer_name=current_user.full_name or current_user.username
+        # Add overall timeout for the entire email operation to prevent 502 errors
+        email_sent = await asyncio.wait_for(
+            EmailService.send_interview_link(
+                candidate_email=session_data.candidate_email,
+                candidate_name=session_data.candidate_name or "Candidate",
+                interview_link=interview_link,
+                interviewer_name=current_user.full_name or current_user.username
+            ),
+            timeout=20.0  # 20 second maximum for entire email operation
         )
         
         if email_sent:
@@ -177,6 +182,9 @@ async def create_interview_session(
         else:
             print(f"⚠️ Email failed to send to {session_data.candidate_email}")
             
+    except asyncio.TimeoutError:
+        print(f"⏰ Email operation timed out for {session_data.candidate_email}")
+        email_sent = False
     except Exception as e:
         # Log error but don't fail the session creation
         print(f"❌ Failed to send email: {e}")
