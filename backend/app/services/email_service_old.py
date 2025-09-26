@@ -2,6 +2,8 @@ import os
 import asyncio
 import logging
 from typing import Optional
+import json
+import aiohttp
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, From, To, Subject, HtmlContent, PlainTextContent
 from email.message import EmailMessage
@@ -147,7 +149,7 @@ class EmailService:
         email_service = EmailService()
 
         # Create HTML body for email
-        html_body = f'''
+        html_body = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -250,7 +252,7 @@ class EmailService:
             </div>
         </body>
         </html>
-        '''
+        """
 
         # Create plain text version for better compatibility
         text_body = f"""

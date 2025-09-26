@@ -176,12 +176,12 @@ async def create_interview_session(
             ),
             timeout=20.0  # 20 second maximum for entire email operation
         )
-        
+
         if email_sent:
             print(f"✅ Email sent successfully to {session_data.candidate_email}")
         else:
             print(f"⚠️ Email failed to send to {session_data.candidate_email}")
-            
+
     except asyncio.TimeoutError:
         print(f"⏰ Email operation timed out for {session_data.candidate_email}")
         email_sent = False

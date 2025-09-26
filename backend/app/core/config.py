@@ -19,10 +19,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
     # CORS - Handle both string and list formats
-    CORS_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,http://localhost:3000"
+    CORS_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app"
 
     # WebSocket
-    WEBSOCKET_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,http://localhost:3000"
+    WEBSOCKET_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app"
 
     # Email Configuration
     MAIL_USERNAME: str = ""
@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     MAIL_PORT: int = 587
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_FROM_NAME: str = "AI Interview Assistant"
+
+    # SendGrid Configuration (for production email delivery)
+    SENDGRID_API_KEY: str = ""
 
     # Cloudinary Configuration
     CLOUDINARY_CLOUD_NAME: str = "drrwu3h46"

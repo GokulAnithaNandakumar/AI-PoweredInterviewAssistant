@@ -61,10 +61,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 GEMINI_API_KEY=AIzaSyCE0CuBsQr7aIi4ZgYn-H-W415NG9paVtI
 
 # CORS - Use comma-separated format (NO brackets or quotes)
-CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,http://localhost:3000
+CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app
 
 # WebSocket - Use comma-separated format (NO brackets or quotes)
-WEBSOCKET_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,http://localhost:3000
+WEBSOCKET_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app
 
 # Email Configuration (Gmail SMTP)
 MAIL_USERNAME=gokul.ietvit@gmail.com
@@ -114,8 +114,8 @@ This ensures that:
 ## Critical Points for Render
 
 1. **CORS_ORIGINS Format**: Use comma-separated values WITHOUT brackets or quotes
-   - ✅ Correct: `https://example.com,http://localhost:3000`
-   - ❌ Wrong: `["https://example.com", "http://localhost:3000"]`
+   - ✅ Correct: `https://example.com,https://ai-powered-interview-assistant-chi.vercel.app`
+   - ❌ Wrong: `["https://example.com", "https://ai-powered-interview-assistant-chi.vercel.app"]`
 
 2. **PORT Variable**: Render automatically sets this, but we also support manual override
 
@@ -134,12 +134,12 @@ This ensures that:
 
 ## Test Results
 
-✅ Configuration parsing works correctly  
-✅ FastAPI app starts without errors  
-✅ CORS origins are properly parsed from environment variables  
-✅ Port binding is dynamic and supports Render's PORT variable  
-✅ Email service includes timeout and retry logic  
-✅ Frontend routing works with direct URL access  
+✅ Configuration parsing works correctly
+✅ FastAPI app starts without errors
+✅ CORS origins are properly parsed from environment variables
+✅ Port binding is dynamic and supports Render's PORT variable
+✅ Email service includes timeout and retry logic
+✅ Frontend routing works with direct URL access
 
 ## Troubleshooting
 
@@ -166,7 +166,7 @@ This ensures that:
 
 Once deployed, these endpoints should be accessible:
 - `GET /` - Root endpoint with API info
-- `GET /health` - Health check endpoint  
+- `GET /health` - Health check endpoint
 - `GET /api/...` - Your API endpoints
 
 ## Interview Links
