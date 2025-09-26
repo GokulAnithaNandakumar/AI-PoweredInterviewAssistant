@@ -14,28 +14,28 @@ graph TB
         D[Candidate Access] --> E[Interview Session]
         E --> F[Real-time Chat]
     end
-    
+
     subgraph "Backend (FastAPI + Python)"
         G[Authentication API]
         H[Interview Management]
         I[Dashboard API]
         J[WebSocket Server]
     end
-    
+
     subgraph "AI Layer (Gemini + LangGraph)"
         K[Question Generator]
-        L[Answer Evaluator] 
+        L[Answer Evaluator]
         M[Resume Parser]
         N[Summary Generator]
     end
-    
+
     subgraph "Database (Neon PostgreSQL)"
         O[(Interviewers)]
         P[(Sessions)]
         Q[(Questions)]
         R[(Answers)]
     end
-    
+
     A --> G
     C --> H
     E --> I
@@ -63,7 +63,7 @@ graph TB
 - **Candidate Analytics**: View scores, answers, and AI feedback
 - **Search & Filter**: Find specific candidates quickly
 
-### 🎓 **Candidate Experience**  
+### 🎓 **Candidate Experience**
 - **Resume Upload**: PDF/DOCX parsing with AI extraction
 - **Missing Info Collection**: Chatbot prompts for incomplete details
 - **Timed Interview**: 6 questions (2 Easy/20s, 2 Medium/60s, 2 Hard/120s)
@@ -229,7 +229,7 @@ npm run dev
 
 ### **Authentication**
 - `POST /api/auth/register` - Register interviewer
-- `POST /api/auth/login` - Login interviewer  
+- `POST /api/auth/login` - Login interviewer
 - `POST /api/auth/create-session` - Generate candidate link
 
 ### **Interview**
@@ -263,7 +263,7 @@ question_data = question_agent.generate_question(
     }
 )
 
-# Answer Evaluator Agent  
+# Answer Evaluator Agent
 evaluator_agent = AnswerEvaluatorAgent()
 evaluation = evaluator_agent.evaluate_answer(
     question=question_data,
@@ -307,14 +307,14 @@ socket.on('interview_completed', (data) => {
 
 ```typescript
 // Interview Timer Component
-<Progress 
-    type="circle" 
+<Progress
+    type="circle"
     percent={(timeRemaining / timeLimit) * 100}
     format={() => `${timeRemaining}s`}
     status={timeRemaining < 10 ? 'exception' : 'active'}
 />
 
-// Candidate Dashboard  
+// Candidate Dashboard
 <Table
     dataSource={candidates}
     columns={candidateColumns}
@@ -325,7 +325,7 @@ socket.on('interview_completed', (data) => {
 // Chat Interface
 <Card className="interview-chat">
     <ChatMessages messages={chatHistory} />
-    <Input.TextArea 
+    <Input.TextArea
         value={currentAnswer}
         placeholder="Type your answer here..."
         disabled={!isTimerRunning}
@@ -370,7 +370,7 @@ npm run build
 # Deploy to Vercel
 vercel --prod
 
-# Deploy to Netlify  
+# Deploy to Netlify
 netlify deploy --prod --dir=dist
 ```
 
@@ -407,7 +407,7 @@ railway up
 npm run test              # Unit tests
 npm run test:e2e          # End-to-end tests
 
-# Backend testing  
+# Backend testing
 pytest tests/             # API tests
 pytest --cov=app tests/   # Coverage report
 ```

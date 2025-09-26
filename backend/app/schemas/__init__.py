@@ -41,7 +41,7 @@ class InterviewerResponse(InterviewerBase):
     id: int
     is_active: bool
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -63,14 +63,16 @@ class InterviewSessionResponse(BaseModel):
     candidate_name: Optional[str]
     candidate_email: Optional[str]
     candidate_phone: Optional[str]
+    resume_url: Optional[str]
     status: SessionStatus
     current_question_index: int
     total_score: float
     ai_summary: Optional[str]
+    student_ai_summary: Optional[str]
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
-    
+
     class Config:
         from_attributes = True
 
@@ -88,13 +90,14 @@ class InterviewQuestionResponse(BaseModel):
     question_text: str
     time_limit: int
     generated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 # Answer Schemas
 class InterviewAnswerSubmit(BaseModel):
-    answer_text: Optional[str] = None
+    question_number: int
+    answer: Optional[str] = None
     time_taken: Optional[int] = None
 
 class InterviewAnswerResponse(BaseModel):
@@ -105,25 +108,26 @@ class InterviewAnswerResponse(BaseModel):
     ai_feedback: Optional[str]
     submitted_at: datetime
     question: InterviewQuestionResponse
-    
+
     class Config:
         from_attributes = True
 
 # Chat Message Schemas
 class ChatMessageCreate(BaseModel):
+    sender: str
     message: str
-    sender: MessageSender
-    message_type: MessageType = MessageType.TEXT
-    metadata: Optional[Dict[str, Any]] = None
+    message_type: str = "text"
+    message_metadata: Optional[Dict] = None
 
-class ChatMessageResponse(BaseModel):
+class ChatMessage(BaseModel):
     id: int
-    sender: MessageSender
+    session_id: int
+    sender: str
     message: str
-    message_type: MessageType
-    metadata: Optional[Dict[str, Any]]
+    message_type: str
+    message_metadata: Optional[Dict]
     timestamp: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -147,7 +151,7 @@ class CandidateListItem(BaseModel):
 class CandidateDetails(InterviewSessionResponse):
     questions: List[InterviewQuestionResponse]
     answers: List[InterviewAnswerResponse]
-    chat_history: List[ChatMessageResponse]
+    chat_history: List[ChatMessage]
 
 # WebSocket Schemas
 class WebSocketMessage(BaseModel):

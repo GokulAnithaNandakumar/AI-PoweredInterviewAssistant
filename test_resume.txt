@@ -1,0 +1,27 @@
+JOHN DOE
+Software Engineer
+john.doe@email.com
++1-234-567-8900
+
+EXPERIENCE
+Senior Software Engineer at Google (2020-2023)
+- Developed scalable web applications using React and Node.js
+- Led a team of 5 developers on microservices architecture
+- Implemented CI/CD pipelines using Jenkins and Docker
+
+Software Engineer at Microsoft (2018-2020)
+- Built REST APIs using Python and FastAPI
+- Worked with PostgreSQL and MongoDB databases
+- Experience with AWS cloud services
+
+SKILLS
+- Programming Languages: Python, JavaScript, TypeScript, Java
+- Frontend: React, Angular, Vue.js
+- Backend: Node.js, FastAPI, Django
+- Databases: PostgreSQL, MongoDB, Redis
+- Cloud: AWS, Azure, GCP
+- DevOps: Docker, Kubernetes, Jenkins
+
+EDUCATION
+Bachelor of Science in Computer Science
+Stanford University (2014-2018)

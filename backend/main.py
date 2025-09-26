@@ -3,14 +3,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.core.database import engine, get_db
+from app.core.database import engine, get_db, create_default_admin
 from app.models import Base
-from app.api import auth, interview, dashboard
+from app.api import auth_v2, dashboard_v2, interview
 from typing import Dict, List
 import json
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables created successfully")
+except Exception as e:
+    print(f"❌ Error creating database tables: {e}")
+
+# Create default admin user
+try:
+    create_default_admin()
+    print("✅ Default admin user created/verified")
+except Exception as e:
+    print(f"❌ Error creating default admin user: {e}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -22,37 +33,38 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # Include API routers
-app.include_router(auth.router, prefix="/api")
+from app.api import auth_v2, dashboard_v2, interview
+app.include_router(auth_v2.router, prefix="/api")
+app.include_router(dashboard_v2.router, prefix="/api")
 app.include_router(interview.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
 
 # WebSocket connection manager
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, List[WebSocket]] = {}
-    
+
     async def connect(self, websocket: WebSocket, session_token: str):
         await websocket.accept()
         if session_token not in self.active_connections:
             self.active_connections[session_token] = []
         self.active_connections[session_token].append(websocket)
-    
+
     def disconnect(self, websocket: WebSocket, session_token: str):
         if session_token in self.active_connections:
             self.active_connections[session_token].remove(websocket)
             if not self.active_connections[session_token]:
                 del self.active_connections[session_token]
-    
+
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
-    
+
     async def broadcast_to_session(self, message: str, session_token: str):
         if session_token in self.active_connections:
             for connection in self.active_connections[session_token]:
@@ -67,10 +79,10 @@ async def websocket_endpoint(websocket: WebSocket, session_token: str):
         while True:
             data = await websocket.receive_text()
             message_data = json.loads(data)
-            
+
             # Broadcast message to all connections in this session
             await manager.broadcast_to_session(data, session_token)
-            
+
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_token)
 

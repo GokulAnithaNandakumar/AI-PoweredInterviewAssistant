@@ -23,7 +23,7 @@ def get_interviewer_sessions(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-    
+
     # Get interviewer
     interviewer = InterviewerService.get_interviewer_by_username(db, username)
     if not interviewer:
@@ -31,10 +31,10 @@ def get_interviewer_sessions(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Interviewer not found"
         )
-    
+
     # Get sessions
     sessions = DashboardService.get_interviewer_sessions(db, interviewer.id)
-    
+
     return [
         CandidateListItem(
             id=session.id,
@@ -63,7 +63,7 @@ def get_session_details(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-    
+
     # Get interviewer
     interviewer = InterviewerService.get_interviewer_by_username(db, username)
     if not interviewer:
@@ -71,7 +71,7 @@ def get_session_details(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Interviewer not found"
         )
-    
+
     # Get session details
     details = DashboardService.get_session_details(db, session_id, interviewer.id)
     if not details:
@@ -79,7 +79,7 @@ def get_session_details(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     return CandidateDetails(
         **details['session'].__dict__,
         questions=details['questions'],
@@ -100,7 +100,7 @@ def get_dashboard_stats(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
-    
+
     # Get interviewer
     interviewer = InterviewerService.get_interviewer_by_username(db, username)
     if not interviewer:
@@ -108,20 +108,20 @@ def get_dashboard_stats(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Interviewer not found"
         )
-    
+
     # Get sessions
     sessions = DashboardService.get_interviewer_sessions(db, interviewer.id)
-    
+
     # Calculate stats
     total_sessions = len(sessions)
     completed_sessions = len([s for s in sessions if s.status == "completed"])
     in_progress_sessions = len([s for s in sessions if s.status == "in_progress"])
     average_score = 0.0
-    
+
     if completed_sessions > 0:
         total_score = sum(s.total_score for s in sessions if s.status == "completed")
         average_score = round(total_score / completed_sessions, 2)
-    
+
     return {
         "total_sessions": total_sessions,
         "completed_sessions": completed_sessions,

@@ -8,15 +8,15 @@ export interface Interviewer {
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface RegisterData {
   email: string;
-  username: string;
+  name: string;
   password: string;
-  full_name?: string;
+  company?: string;
 }
 
 export interface AuthToken {
@@ -30,10 +30,12 @@ export interface InterviewSession {
   candidate_name?: string;
   candidate_email?: string;
   candidate_phone?: string;
+  resume_url?: string;
   status: 'created' | 'in_progress' | 'completed' | 'abandoned';
   current_question_index: number;
   total_score: number;
   ai_summary?: string;
+  student_ai_summary?: string;
   created_at: string;
   started_at?: string;
   completed_at?: string;

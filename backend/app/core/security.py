@@ -31,3 +31,4 @@ def verify_token(token: str) -> Union[str, None]:
         return payload.get("sub")
     except JWTError:
         return None
+decode_access_token = verify_token

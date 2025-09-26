@@ -1,12 +1,12 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { 
-  InterviewSession, 
-  InterviewQuestion, 
-  InterviewAnswer, 
+import type {
+  InterviewSession,
+  InterviewQuestion,
+  InterviewAnswer,
   ChatMessage,
   CandidateInfo,
-  ResumeUploadResponse 
+  ResumeUploadResponse
 } from '../../types';
 import api from '../../services/api';
 
@@ -56,7 +56,7 @@ export const uploadResume = createAsyncThunk(
   async ({ sessionToken, file }: { sessionToken: string; file: File }) => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await api.post<ResumeUploadResponse>(
       `/interview/${sessionToken}/upload-resume`,
       formData,
@@ -88,16 +88,16 @@ export const startInterview = createAsyncThunk(
 
 export const submitAnswer = createAsyncThunk(
   'interview/submitAnswer',
-  async ({ 
-    sessionToken, 
-    questionId, 
-    answerText, 
-    timeTaken 
-  }: { 
-    sessionToken: string; 
-    questionId: number; 
-    answerText?: string; 
-    timeTaken?: number; 
+  async ({
+    sessionToken,
+    questionId,
+    answerText,
+    timeTaken
+  }: {
+    sessionToken: string;
+    questionId: number;
+    answerText?: string;
+    timeTaken?: number;
   }) => {
     const response = await api.post(`/interview/${sessionToken}/submit-answer?question_id=${questionId}`, {
       answer_text: answerText,
@@ -109,15 +109,15 @@ export const submitAnswer = createAsyncThunk(
 
 export const addChatMessage = createAsyncThunk(
   'interview/addChatMessage',
-  async ({ 
-    sessionToken, 
-    message, 
-    sender, 
-    messageType 
-  }: { 
-    sessionToken: string; 
-    message: string; 
-    sender: 'user' | 'assistant'; 
+  async ({
+    sessionToken,
+    message,
+    sender,
+    messageType
+  }: {
+    sessionToken: string;
+    message: string;
+    sender: 'user' | 'assistant';
     messageType?: 'text' | 'system' | 'question' | 'answer';
   }) => {
     await api.post(`/interview/${sessionToken}/chat`, {
@@ -192,9 +192,9 @@ const interviewSlice = createSlice({
       // Update candidate info
       .addCase(updateCandidateInfo.fulfilled, (state, action) => {
         if (state.currentSession) {
-          state.currentSession = { 
-            ...state.currentSession, 
-            ...action.payload.candidateInfo 
+          state.currentSession = {
+            ...state.currentSession,
+            ...action.payload.candidateInfo
           };
         }
         // Update missing fields
@@ -231,7 +231,7 @@ const interviewSlice = createSlice({
       })
       .addCase(submitAnswer.fulfilled, (state, action) => {
         state.isLoading = false;
-        
+
         if (action.payload.interview_completed) {
           state.isCompleted = true;
           state.currentQuestion = null;

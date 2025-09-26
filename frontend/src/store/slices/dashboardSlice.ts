@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { 
-  CandidateListItem, 
-  CandidateDetails, 
-  DashboardStats 
+import type {
+  CandidateListItem,
+  CandidateDetails,
+  DashboardStats
 } from '../../types';
 import api from '../../services/api';
 
