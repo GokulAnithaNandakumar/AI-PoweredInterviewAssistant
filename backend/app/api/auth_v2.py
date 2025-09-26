@@ -162,7 +162,7 @@ async def create_interview_session(
     try:
         from app.services.email_service import EmailService
 
-        interview_link = f"http://localhost:5173/interview/{session_token}"
+        interview_link = f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}"
 
         await EmailService.send_interview_link(
             candidate_email=session_data.candidate_email,
