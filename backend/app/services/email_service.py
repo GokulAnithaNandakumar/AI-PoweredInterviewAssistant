@@ -21,11 +21,11 @@ class EmailService:
         self.smtp_password = settings.MAIL_PASSWORD
         self.mail_from = settings.MAIL_FROM
         self.mail_from_name = settings.MAIL_FROM_NAME
-        
+
         # SendGrid Configuration (primary for production)
         self.sendgrid_api_key = getattr(settings, 'SENDGRID_API_KEY', None)
         self.sendgrid_client = None
-        
+
         if self.sendgrid_api_key:
             try:
                 self.sendgrid_client = SendGridAPIClient(api_key=self.sendgrid_api_key)
@@ -38,35 +38,35 @@ class EmailService:
         if not self.sendgrid_client:
             logger.error("SendGrid client not available")
             return False
-            
+
         try:
             # Create mail object
             from_email = From(self.mail_from, self.mail_from_name)
             to_email_obj = To(to_email)
             subject_obj = Subject(subject)
             html_content = HtmlContent(html_body)
-            
+
             mail = Mail(
                 from_email=from_email,
                 to_emails=to_email_obj,
                 subject=subject_obj,
                 html_content=html_content
             )
-            
+
             if text_body:
                 plain_text_content = PlainTextContent(text_body)
                 mail.plain_text_content = plain_text_content
 
             # Send the email
             response = self.sendgrid_client.send(mail)
-            
+
             if response.status_code in [200, 202]:
                 logger.info(f"✅ SendGrid email sent successfully to {to_email}. Status: {response.status_code}")
                 return True
             else:
                 logger.error(f"❌ SendGrid failed with status {response.status_code}: {response.body}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"❌ SendGrid error: {str(e)}")
             return False
@@ -78,7 +78,7 @@ class EmailService:
             msg["From"] = f"{self.mail_from_name} <{self.mail_from}>"
             msg["To"] = to_email
             msg["Subject"] = subject
-            
+
             # Set both plain text and HTML content
             msg.set_content(body)
             if html_body:
@@ -87,8 +87,8 @@ class EmailService:
             # Try STARTTLS first (port 587)
             try:
                 async with SMTP(
-                    hostname=self.smtp_host, 
-                    port=self.smtp_port, 
+                    hostname=self.smtp_host,
+                    port=self.smtp_port,
                     start_tls=True,
                     timeout=10.0  # Reduced timeout for faster fallback
                 ) as smtp:
@@ -96,10 +96,10 @@ class EmailService:
                     await smtp.send_message(msg)
                     logger.info(f"✅ SMTP email sent successfully to {to_email} via STARTTLS")
                     return True
-                    
+
             except Exception as e:
                 logger.warning(f"⚠️ STARTTLS failed for {to_email}, trying SSL: {str(e)}")
-                
+
                 # Try SSL as fallback (port 465)
                 async with SMTP(
                     hostname=self.smtp_host,
@@ -118,7 +118,7 @@ class EmailService:
 
     async def _send_email(self, to_email: str, subject: str, html_body: str, text_body: str = None):
         """Primary email sending method with SendGrid first, SMTP fallback"""
-        
+
         # Try SendGrid first (HTTP API - works on Render)
         if self.sendgrid_client:
             logger.info(f"📧 Attempting to send email via SendGrid to {to_email}")
@@ -127,7 +127,7 @@ class EmailService:
                 return True
             else:
                 logger.warning("SendGrid failed, trying SMTP fallback...")
-        
+
         # Fallback to SMTP (for local development)
         logger.info(f"📧 Attempting to send email via SMTP to {to_email}")
         return await self._send_via_smtp(to_email, subject, text_body or "Interview Invitation", html_body)
@@ -219,9 +219,9 @@ class EmailService:
 
                 <div class="content">
                     <p>Hello <span class="highlight">{candidate_name}</span>,</p>
-                    
+
                     <p>Congratulations! You've been invited to participate in an AI-powered technical interview. Our intelligent system will guide you through a comprehensive assessment designed to evaluate your skills and capabilities.</p>
-                    
+
                     <p><strong>What to expect:</strong></p>
                     <ul>
                         <li>🤖 AI-powered interview questions tailored to your profile</li>
@@ -229,15 +229,15 @@ class EmailService:
                         <li>💡 Dynamic difficulty adjustment based on your answers</li>
                         <li>📊 Real-time evaluation and feedback</li>
                     </ul>
-                    
+
                     <p>Click the button below to begin your interview:</p>
-                    
+
                     <div style="text-align: center;">
                         <a href="{interview_link}" class="cta-button">Start Interview Now</a>
                     </div>
-                    
+
                     <p><strong>Note:</strong> Please ensure you have a stable internet connection and are in a quiet environment before starting the interview.</p>
-                    
+
                     <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
                     <p style="word-break: break-all; color: #1976d2;">{interview_link}</p>
                 </div>
@@ -285,12 +285,12 @@ class EmailService:
             html_body=html_body,
             text_body=text_body
         )
-        
+
         if success:
             logger.info(f"✅ Interview invitation sent successfully to {candidate_email}")
         else:
             logger.error(f"❌ Failed to send interview invitation to {candidate_email}")
-            
+
         return success
 
 

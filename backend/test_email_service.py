@@ -11,15 +11,15 @@ sys.path.append('/Users/gokulnandakumar/Developer/github_push/AI-PoweredIntervie
 
 async def test_email_service():
     """Test the email service with timeout handling."""
-    
+
     print("Testing email service...")
-    
+
     try:
         from app.services.email_service import EmailService
-        
+
         # Test with a timeout
         start_time = datetime.now()
-        
+
         result = await asyncio.wait_for(
             EmailService.send_interview_link(
                 candidate_email="test@example.com",
@@ -29,19 +29,19 @@ async def test_email_service():
             ),
             timeout=10.0  # 10 second total timeout
         )
-        
+
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
-        
+
         print(f"✅ Email service completed in {duration:.2f} seconds")
         print(f"   Result: {'Success' if result else 'Failed'}")
-        
+
     except asyncio.TimeoutError:
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         print(f"❌ Email service timed out after {duration:.2f} seconds")
         print("   This could cause 502 errors in production")
-        
+
     except Exception as e:
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
