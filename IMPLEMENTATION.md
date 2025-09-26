@@ -162,7 +162,7 @@ npm run dev
 
 ```bash
 # Backend API will be available at:
-http://localhost:8000/docs  # Interactive API documentation
+https://ai-poweredinterviewassistant.onrender.com/docs  # Interactive API documentation
 
 # Frontend will be available at:
 https://ai-powered-interview-assistant-chi.vercel.app       # React development server
