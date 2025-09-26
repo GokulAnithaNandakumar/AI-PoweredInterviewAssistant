@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Union
+import json
+import os
 
 class Settings(BaseSettings):
     # Database
@@ -13,11 +15,11 @@ class Settings(BaseSettings):
     # Gemini API
     GEMINI_API_KEY: str = ""
 
-    # CORS
-    CORS_ORIGINS: List[str] = ["https://ai-powered-interview-assistant-chi.vercel.app", "http://localhost:3000"]
+    # CORS - Handle both string and list formats
+    CORS_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,http://localhost:3000"
 
     # WebSocket
-    WEBSOCKET_ORIGINS: List[str] = ["https://ai-powered-interview-assistant-chi.vercel.app", "http://localhost:3000"]
+    WEBSOCKET_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,http://localhost:3000"
 
     # Email Configuration
     MAIL_USERNAME: str = ""
@@ -31,6 +33,18 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str = "drrwu3h46"
     CLOUDINARY_API_KEY: str = "255559542354973"
     CLOUDINARY_API_SECRET: str = "yZMqUlw2_mOtRYAjtWBGLtblGCU"
+
+    def get_cors_origins(self) -> List[str]:
+        """Parse CORS origins from string or list format"""
+        if isinstance(self.CORS_ORIGINS, str):
+            return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        return self.CORS_ORIGINS
+
+    def get_websocket_origins(self) -> List[str]:
+        """Parse WebSocket origins from string or list format"""
+        if isinstance(self.WEBSOCKET_ORIGINS, str):
+            return [origin.strip() for origin in self.WEBSOCKET_ORIGINS.split(",") if origin.strip()]
+        return self.WEBSOCKET_ORIGINS
 
     class Config:
         env_file = ".env"
