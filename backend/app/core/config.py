@@ -32,9 +32,6 @@ class Settings(BaseSettings):
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_FROM_NAME: str = "AI Interview Assistant"
 
-    # SendGrid Configuration (for production email delivery)
-    SENDGRID_API_KEY: str = ""
-
     # Cloudinary Configuration
     CLOUDINARY_CLOUD_NAME: str = "drrwu3h46"
     CLOUDINARY_API_KEY: str = "255559542354973"
