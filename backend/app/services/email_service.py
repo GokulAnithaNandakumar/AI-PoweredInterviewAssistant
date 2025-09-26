@@ -1,13 +1,10 @@
 import os
 import asyncio
 import logging
-import smtplib
 from typing import Optional
+import resend
 from email.message import EmailMessage
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from aiosmtplib import SMTP
-import ssl
 from app.core.config import settings
 
 # Setup logging
@@ -16,182 +13,97 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     def __init__(self):
-        # SMTP Configuration - using your proven working approach
+        # Resend Configuration (Primary)
+        self.resend_api_key = getattr(settings, 'RESEND_API_KEY', None)
+        self.resend_from_email = getattr(settings, 'RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+        
+        # SMTP Configuration (Fallback)
         self.smtp_host = settings.MAIL_SERVER
         self.smtp_port = settings.MAIL_PORT
         self.smtp_user = settings.MAIL_USERNAME
         self.smtp_password = settings.MAIL_PASSWORD
         self.mail_from = settings.MAIL_FROM
         self.mail_from_name = settings.MAIL_FROM_NAME
-
-        logger.info(f"📧 Email service initialized:")
-        logger.info(f"   SMTP Host: {self.smtp_host}:{self.smtp_port}")
+        
+        # Initialize Resend
+        if self.resend_api_key:
+            resend.api_key = self.resend_api_key
+            logger.info(f"✅ Resend email service initialized")
+            logger.info(f"   From: {self.resend_from_email}")
+        else:
+            logger.warning("⚠️ Resend API key not found, will use SMTP fallback")
+        
+        logger.info(f"📧 SMTP Fallback configured:")
+        logger.info(f"   Host: {self.smtp_host}:{self.smtp_port}")
         logger.info(f"   From: {self.mail_from}")
 
-    async def send_email_async_method1(self, to_email: str, subject: str, body: str):
-        """Method 1: Async SMTP with STARTTLS (Port 587) - 60s timeout"""
+    async def send_via_resend(self, to_email: str, subject: str, html_body: str):
+        """Send email via Resend HTTP API (Primary method)"""
+        if not self.resend_api_key:
+            logger.error("❌ Resend API key not configured")
+            return False
+            
         try:
+            logger.info(f"📧 Sending email via Resend to {to_email}...")
+            
+            # Send email using Resend
+            r = resend.Emails.send({
+                "from": self.resend_from_email,
+                "to": to_email,
+                "subject": subject,
+                "html": html_body
+            })
+            
+            if r and 'id' in r:
+                logger.info(f"✅ Resend email sent successfully to {to_email}. ID: {r['id']}")
+                return True
+            else:
+                logger.error(f"❌ Resend failed: {r}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Resend error: {str(e)}")
+            return False
+
+    async def send_via_smtp(self, to_email: str, subject: str, html_body: str):
+        """Send email via SMTP (Fallback method)"""
+        if not self.smtp_user or not self.smtp_password:
+            logger.error("❌ SMTP credentials not configured")
+            return False
+            
+        try:
+            logger.info(f"📧 Sending email via SMTP fallback to {to_email}...")
+            
             msg = EmailMessage()
             msg["From"] = self.smtp_user
             msg["To"] = to_email
             msg["Subject"] = subject
-            msg.set_content(body, subtype='html')
-
-            logger.info(f"📧 Method 1: Trying async SMTP STARTTLS (587) to {to_email}...")
-
-            async with SMTP(hostname=self.smtp_host, port=587, start_tls=True, timeout=60) as smtp:
+            msg.set_content(html_body, subtype='html')
+            
+            async with SMTP(hostname=self.smtp_host, port=self.smtp_port, start_tls=True, timeout=30) as smtp:
                 await smtp.login(self.smtp_user, self.smtp_password)
                 await smtp.send_message(msg)
-
-            logger.info(f"✅ Method 1 SUCCESS: Email sent to {to_email}")
+                
+            logger.info(f"✅ SMTP email sent successfully to {to_email}")
             return True
-
+            
         except Exception as e:
-            logger.warning(f"⚠️ Method 1 FAILED: {str(e)}")
+            logger.error(f"❌ SMTP error: {str(e)}")
             return False
 
-    async def send_email_async_method2(self, to_email: str, subject: str, body: str):
-        """Method 2: Async SMTP with SSL (Port 465) - 60s timeout"""
-        try:
-            msg = EmailMessage()
-            msg["From"] = self.smtp_user
-            msg["To"] = to_email
-            msg["Subject"] = subject
-            msg.set_content(body, subtype='html')
-
-            logger.info(f"📧 Method 2: Trying async SMTP SSL (465) to {to_email}...")
-
-            async with SMTP(hostname=self.smtp_host, port=465, use_tls=True, timeout=60) as smtp:
-                await smtp.login(self.smtp_user, self.smtp_password)
-                await smtp.send_message(msg)
-
-            logger.info(f"✅ Method 2 SUCCESS: Email sent to {to_email}")
-            return True
-
-        except Exception as e:
-            logger.warning(f"⚠️ Method 2 FAILED: {str(e)}")
-            return False
-
-    def send_email_sync_method3(self, to_email: str, subject: str, body: str):
-        """Method 3: Synchronous SMTP with STARTTLS (Port 587) - blocking"""
-        try:
-            msg = MIMEMultipart('alternative')
-            msg["From"] = self.smtp_user
-            msg["To"] = to_email
-            msg["Subject"] = subject
-
-            # Add HTML content
-            html_part = MIMEText(body, 'html')
-            msg.attach(html_part)
-
-            logger.info(f"📧 Method 3: Trying sync SMTP STARTTLS (587) to {to_email}...")
-
-            # Create SMTP connection with extended timeout
-            server = smtplib.SMTP(self.smtp_host, 587, timeout=120)
-            server.starttls()
-            server.login(self.smtp_user, self.smtp_password)
-            server.send_message(msg)
-            server.quit()
-
-            logger.info(f"✅ Method 3 SUCCESS: Email sent to {to_email}")
-            return True
-
-        except Exception as e:
-            logger.warning(f"⚠️ Method 3 FAILED: {str(e)}")
-            return False
-
-    def send_email_sync_method4(self, to_email: str, subject: str, body: str):
-        """Method 4: Synchronous SMTP with SSL (Port 465) - blocking"""
-        try:
-            msg = MIMEMultipart('alternative')
-            msg["From"] = self.smtp_user
-            msg["To"] = to_email
-            msg["Subject"] = subject
-
-            # Add HTML content
-            html_part = MIMEText(body, 'html')
-            msg.attach(html_part)
-
-            logger.info(f"📧 Method 4: Trying sync SMTP SSL (465) to {to_email}...")
-
-            # Create SSL context
-            context = ssl.create_default_context()
-
-            # Create SMTP connection with SSL
-            server = smtplib.SMTP_SSL(self.smtp_host, 465, context=context, timeout=120)
-            server.login(self.smtp_user, self.smtp_password)
-            server.send_message(msg)
-            server.quit()
-
-            logger.info(f"✅ Method 4 SUCCESS: Email sent to {to_email}")
-            return True
-
-        except Exception as e:
-            logger.warning(f"⚠️ Method 4 FAILED: {str(e)}")
-            return False
-
-    async def send_email(self, to_email: str, subject: str, body: str):
-        """Send email using multiple fallback methods with extended timeouts"""
-
-        # Method 1: Async SMTP STARTTLS (Port 587) - 60s timeout
-        try:
-            result = await asyncio.wait_for(
-                self.send_email_async_method1(to_email, subject, body),
-                timeout=65.0
-            )
-            if result:
+    async def send_email(self, to_email: str, subject: str, html_body: str):
+        """Send email using Resend first, SMTP as fallback"""
+        
+        # Try Resend first (HTTP API - works on all platforms)
+        if self.resend_api_key:
+            success = await self.send_via_resend(to_email, subject, html_body)
+            if success:
                 return True
-        except asyncio.TimeoutError:
-            logger.warning("⏰ Method 1 timed out after 65 seconds")
-        except Exception as e:
-            logger.warning(f"⚠️ Method 1 error: {e}")
-
-        # Method 2: Async SMTP SSL (Port 465) - 60s timeout
-        try:
-            result = await asyncio.wait_for(
-                self.send_email_async_method2(to_email, subject, body),
-                timeout=65.0
-            )
-            if result:
-                return True
-        except asyncio.TimeoutError:
-            logger.warning("⏰ Method 2 timed out after 65 seconds")
-        except Exception as e:
-            logger.warning(f"⚠️ Method 2 error: {e}")
-
-        # Method 3: Sync SMTP STARTTLS (Port 587) - 120s timeout
-        try:
-            result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(
-                    None, self.send_email_sync_method3, to_email, subject, body
-                ),
-                timeout=125.0
-            )
-            if result:
-                return True
-        except asyncio.TimeoutError:
-            logger.warning("⏰ Method 3 timed out after 125 seconds")
-        except Exception as e:
-            logger.warning(f"⚠️ Method 3 error: {e}")
-
-        # Method 4: Sync SMTP SSL (Port 465) - 120s timeout
-        try:
-            result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(
-                    None, self.send_email_sync_method4, to_email, subject, body
-                ),
-                timeout=125.0
-            )
-            if result:
-                return True
-        except asyncio.TimeoutError:
-            logger.warning("⏰ Method 4 timed out after 125 seconds")
-        except Exception as e:
-            logger.warning(f"⚠️ Method 4 error: {e}")
-
-        # All methods failed
-        logger.error(f"❌ ALL EMAIL METHODS FAILED for {to_email}")
-        return False
+            else:
+                logger.warning("🔄 Resend failed, trying SMTP fallback...")
+        
+        # Fallback to SMTP
+        return await self.send_via_smtp(to_email, subject, html_body)
 
     @staticmethod
     async def send_interview_link(
@@ -200,7 +112,7 @@ class EmailService:
         interview_link: str,
         interviewer_name: str = "AI Interview Team"
     ):
-        """Send interview link to candidate via email using proven SMTP method."""
+        """Send interview link to candidate via email using Resend + SMTP fallback."""
 
         logger.info(f"🚀 Sending interview email to {candidate_email}")
 
@@ -280,9 +192,9 @@ class EmailService:
 
                 <div class="content">
                     <p>Hello <span class="highlight">{candidate_name}</span>,</p>
-
+                    
                     <p>Congratulations! You've been invited to participate in an AI-powered technical interview. Our intelligent system will guide you through a comprehensive assessment designed to evaluate your skills and capabilities.</p>
-
+                    
                     <p><strong>What to expect:</strong></p>
                     <ul>
                         <li>🤖 AI-powered interview questions tailored to your profile</li>
@@ -290,15 +202,15 @@ class EmailService:
                         <li>💡 Dynamic difficulty adjustment based on your answers</li>
                         <li>📊 Real-time evaluation and feedback</li>
                     </ul>
-
+                    
                     <p>Click the button below to begin your interview:</p>
-
+                    
                     <div style="text-align: center;">
                         <a href="{interview_link}" class="cta-button">Start Interview Now</a>
                     </div>
-
+                    
                     <p><strong>Note:</strong> Please ensure you have a stable internet connection and are in a quiet environment before starting the interview.</p>
-
+                    
                     <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
                     <p style="word-break: break-all; color: #1976d2;">{interview_link}</p>
                 </div>
@@ -313,18 +225,18 @@ class EmailService:
         </html>
         '''
 
-        # Send the email using your proven method
+        # Send the email using Resend + SMTP fallback
         success = await email_service.send_email(
             to_email=candidate_email,
             subject="🎯 Your AI Interview Invitation - Ready to Start!",
-            body=html_body
+            html_body=html_body
         )
-
+        
         if success:
             logger.info(f"✅ Interview invitation sent successfully to {candidate_email}")
         else:
             logger.error(f"❌ Failed to send interview invitation to {candidate_email}")
-
+            
         return success
 
 # Create singleton instance

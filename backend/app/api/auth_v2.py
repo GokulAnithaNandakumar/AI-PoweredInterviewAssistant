@@ -158,7 +158,7 @@ async def create_interview_session(
     db.commit()
     db.refresh(new_session)
 
-    # Send email to candidate with extended timeout protection
+    # Send email to candidate with Resend (fast HTTP API)
     email_sent = False
     try:
         from app.services.email_service import EmailService
@@ -166,8 +166,7 @@ async def create_interview_session(
 
         interview_link = f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}"
 
-        # Extended timeout for the entire email operation with multiple fallback methods
-        # Each method gets up to 125s, total possible time ~8 minutes with all fallbacks
+        # Resend is fast HTTP API - shorter timeout is fine
         email_sent = await asyncio.wait_for(
             EmailService.send_interview_link(
                 candidate_email=session_data.candidate_email,
@@ -175,7 +174,7 @@ async def create_interview_session(
                 interview_link=interview_link,
                 interviewer_name=current_user.full_name or current_user.username
             ),
-            timeout=300.0  # 5 minutes maximum for entire email operation with all fallbacks
+            timeout=30.0  # 30 seconds is plenty for HTTP API + SMTP fallback
         )
 
         if email_sent:

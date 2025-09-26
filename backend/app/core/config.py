@@ -24,13 +24,17 @@ class Settings(BaseSettings):
     # WebSocket
     WEBSOCKET_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app"
 
-    # Email Configuration
+    # Email Configuration - SMTP Fallback
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
     MAIL_FROM: str = ""
     MAIL_PORT: int = 587
     MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_FROM_NAME: str = "AI Interview Assistant"
+    
+    # Resend Configuration (Primary)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
 
     # Cloudinary Configuration
     CLOUDINARY_CLOUD_NAME: str = "drrwu3h46"
