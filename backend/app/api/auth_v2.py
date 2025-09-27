@@ -164,7 +164,7 @@ async def create_interview_session(
         from app.services.email_service import EmailService
         import asyncio
 
-        interview_link = f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}"
+        interview_link = f"http://localhost:3000/interview/{session_token}"
 
         # Resend is fast HTTP API - shorter timeout is fine
         email_sent = await asyncio.wait_for(
@@ -197,7 +197,7 @@ async def create_interview_session(
         "candidate_name": new_session.candidate_name,
         "status": new_session.status,
         "created_at": new_session.created_at,
-        "interview_link": f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}",
+        "interview_link": f"http://localhost:3000/interview/{session_token}",
         "email_sent": email_sent,
         "message": f"Interview session created {'and email sent' if email_sent else '- please share the interview link manually'}"
     }

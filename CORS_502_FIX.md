@@ -4,8 +4,8 @@
 
 ### 1. CORS Configuration Error ✅
 **Problem**: Local `.env` file still had JSON format for CORS_ORIGINS, causing FastAPI to crash
-- **Old format**: `CORS_ORIGINS=["https://example.com", "https://ai-powered-interview-assistant-chi.vercel.app"]`
-- **New format**: `CORS_ORIGINS=https://example.com,https://ai-powered-interview-assistant-chi.vercel.app`
+- **Old format**: `CORS_ORIGINS=["https://example.com", "http://localhost:3000"]`
+- **New format**: `CORS_ORIGINS=https://example.com,http://localhost:3000`
 
 **Fixed**: Updated `backend/.env` to use comma-separated format
 
@@ -55,7 +55,7 @@ class EmailService:
 
 ```bash
 # Both local and production should use this format:
-CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-poweredinterviewassistant.onrender.com,https://ai-powered-interview-assistant-chi.vercel.app,http://127.0.0.1:3000,http://127.0.0.1:5173
+CORS_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:5173
 ```
 
 ## Test Results
@@ -94,8 +94,8 @@ CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-po
 1. **Update requirements.txt** on Render to use new dependencies
 2. **Update Environment Variables** in Render dashboard:
    ```bash
-   CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-poweredinterviewassistant.onrender.com,https://ai-powered-interview-assistant-chi.vercel.app
-   WEBSOCKET_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-poweredinterviewassistant.onrender.com,https://ai-powered-interview-assistant-chi.vercel.app
+   CORS_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:3000
+   WEBSOCKET_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:3000
    ```
 3. **Redeploy** the backend service
 
@@ -132,8 +132,8 @@ Even if SMTP fails, the interview links are logged in the backend, so they can b
 ### For Render Deployment:
 1. **Update Environment Variables** in Render dashboard:
    ```bash
-   CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-poweredinterviewassistant.onrender.com,https://ai-powered-interview-assistant-chi.vercel.app
-   WEBSOCKET_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-poweredinterviewassistant.onrender.com,https://ai-powered-interview-assistant-chi.vercel.app
+   CORS_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:3000
+   WEBSOCKET_ORIGINS=http://localhost:3000,http://localhost:8000,http://localhost:3000
    ```
 
 2. **Redeploy** the backend service after updating environment variables

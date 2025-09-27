@@ -61,10 +61,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 GEMINI_API_KEY=AIzaSyCE0CuBsQr7aIi4ZgYn-H-W415NG9paVtI
 
 # CORS - Use comma-separated format (NO brackets or quotes)
-CORS_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app
+CORS_ORIGINS=http://localhost:3000,http://localhost:3000
 
 # WebSocket - Use comma-separated format (NO brackets or quotes)
-WEBSOCKET_ORIGINS=https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app
+WEBSOCKET_ORIGINS=http://localhost:3000,http://localhost:3000
 
 # Email Configuration (Gmail SMTP)
 MAIL_USERNAME=gokul.ietvit@gmail.com
@@ -114,8 +114,8 @@ This ensures that:
 ## Critical Points for Render
 
 1. **CORS_ORIGINS Format**: Use comma-separated values WITHOUT brackets or quotes
-   - ✅ Correct: `https://example.com,https://ai-powered-interview-assistant-chi.vercel.app`
-   - ❌ Wrong: `["https://example.com", "https://ai-powered-interview-assistant-chi.vercel.app"]`
+   - ✅ Correct: `https://example.com,http://localhost:3000`
+   - ❌ Wrong: `["https://example.com", "http://localhost:3000"]`
 
 2. **PORT Variable**: Render automatically sets this, but we also support manual override
 
@@ -173,5 +173,5 @@ Once deployed, these endpoints should be accessible:
 
 The API now returns the interview link directly in the response, so even if email fails, you can manually share:
 ```
-https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}
+http://localhost:3000/interview/{session_token}
 ```

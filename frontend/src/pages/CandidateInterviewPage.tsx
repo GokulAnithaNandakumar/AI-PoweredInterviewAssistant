@@ -14,6 +14,8 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import VoiceInterviewComponent from '../components/VoiceInterviewComponent';
+import WelcomeBackModal from '../components/WelcomeBackModal';
 import {
   CloudUpload as UploadIcon,
   Send as SendIcon,
@@ -112,6 +114,10 @@ const CandidateInterviewPage: React.FC = () => {
   const timerRef = useRef<number | null>(null);
   const [isTimerActive, setIsTimerActive] = useState(false);
 
+  // Welcome back modal
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [isReturningUser, setIsReturningUser] = useState(false);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Persistence - save state to localStorage
@@ -123,6 +129,67 @@ const CandidateInterviewPage: React.FC = () => {
     saveState();
   }, [saveState]);
 
+  // Detect returning user and show welcome back modal
+  useEffect(() => {
+    if (!sessionToken) return;
+
+    const hasVisitedBefore = localStorage.getItem(`visited_${sessionToken}`);
+    const savedState = localStorage.getItem(`interview_${sessionToken}`);
+
+    if (hasVisitedBefore && savedState) {
+      const parsedState = JSON.parse(savedState);
+      // Show welcome back modal if user has made some progress
+      if (parsedState.phase !== 'upload' || parsedState.currentQuestionIndex > 0) {
+        setIsReturningUser(true);
+        setShowWelcomeBack(true);
+      }
+    } else {
+      // Mark as visited
+      localStorage.setItem(`visited_${sessionToken}`, 'true');
+    }
+  }, [sessionToken]);
+
+  // Handle welcome back modal actions
+  const handleResumeInterview = () => {
+    setShowWelcomeBack(false);
+
+    // Re-load saved state and continue from where they left off
+    const savedState = localStorage.getItem(`interview_${sessionToken}`);
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      setInterviewState(parsedState);
+
+      // If interview is in progress, restart the timer
+      if (parsedState.phase === 'interview' && parsedState.timeRemaining > 0) {
+        setIsTimerActive(true);
+        startTimer(parsedState.timeRemaining);
+      }
+    }
+  };
+
+  const handleRestartInterview = () => {
+    // Clear all stored data for this session
+    localStorage.removeItem(`interview_${sessionToken}`);
+    localStorage.removeItem(`visited_${sessionToken}`);
+
+    // Reset to initial state
+    setInterviewState({
+      phase: 'upload',
+      currentQuestionIndex: 0,
+      answers: [],
+      timeRemaining: 0
+    });
+
+    setCandidateInfo({});
+    setMissingFields([]);
+    setChatMessages([]);
+    setCurrentAnswer('');
+    setQuestions([]);
+
+    setShowWelcomeBack(false);
+    setIsReturningUser(false);
+  };
+
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -133,7 +200,7 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/info`);
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/info`);
       if (response.ok) {
         const data = await response.json();
         setSessionInfo(data);
@@ -212,7 +279,7 @@ const CandidateInterviewPage: React.FC = () => {
         const currentQuestion = questions[interviewState.currentQuestionIndex];
 
         // Auto-submit via API
-        fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
+        fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -300,7 +367,7 @@ const CandidateInterviewPage: React.FC = () => {
       const formData = new FormData();
       formData.append('resume', selectedFile);
 
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/upload-resume`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/upload-resume`, {
         method: 'POST',
         body: formData
       });
@@ -348,7 +415,7 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/candidate-info`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/candidate-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -382,7 +449,7 @@ const CandidateInterviewPage: React.FC = () => {
     setGeneratingQuestions(true);
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/start-interview`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/start-interview`, {
         method: 'POST',
       });
 
@@ -471,7 +538,7 @@ const CandidateInterviewPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1055,46 +1122,20 @@ const CandidateInterviewPage: React.FC = () => {
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
               }}>
                 <CardContent sx={{ p: 4 }}>
-                  <Typography variant="h6" sx={{
-                    mb: 3,
-                    color: '#2d3748',
-                    fontWeight: 600
-                  }}>
-                    💭 Your Answer:
-                  </Typography>
-                  <TextField
-                    multiline
-                    rows={10}
-                    placeholder="Type your answer here... Be specific and explain your reasoning step by step."
-                    value={currentAnswer}
-                    onChange={(e) => setCurrentAnswer(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      mb: 3,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 3,
-                        fontSize: '1.1rem',
-                        lineHeight: 1.6,
-                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                        '&:hover fieldset': {
-                          borderColor: '#667eea',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#667eea',
-                        },
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': {
-                        color: '#667eea',
-                      }
+                  <VoiceInterviewComponent
+                    question={questions[interviewState.currentQuestionIndex]}
+                    timeRemaining={interviewState.timeRemaining}
+                    totalTime={questions[interviewState.currentQuestionIndex]?.time_limit || 60}
+                    onAnswerSubmit={(transcript: string) => submitAnswer(transcript)}
+                    onTranscriptUpdate={(transcript: string) => setCurrentAnswer(transcript)}
+                    onTimeExpired={() => {
+                      const answer = currentAnswer.trim() || "[No answer provided - time expired]";
+                      submitAnswer(answer, true);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.ctrlKey) {
-                        submitAnswer(currentAnswer);
-                      }
-                    }}
+                    isSubmitting={submittingAnswer}
                   />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, mt: 3 }}>
                     <Typography variant="body2" sx={{
                       color: 'text.secondary',
                       background: 'rgba(102, 126, 234, 0.1)',
@@ -1103,7 +1144,7 @@ const CandidateInterviewPage: React.FC = () => {
                       borderRadius: 2,
                       fontWeight: 500
                     }}>
-                      💡 Press Ctrl+Enter to submit quickly
+                      🎤 Voice recording will auto-submit when timer ends
                     </Typography>
                     <Button
                       variant="contained"
@@ -1193,6 +1234,24 @@ const CandidateInterviewPage: React.FC = () => {
           )}
         </Container>
       </Box>
+
+      {/* Welcome Back Modal */}
+      <WelcomeBackModal
+        open={showWelcomeBack}
+        onResume={handleResumeInterview}
+        onRestart={handleRestartInterview}
+        progress={{
+          currentQuestionIndex: interviewState.currentQuestionIndex,
+          totalQuestions: questions.length || 6,
+          timeRemaining: interviewState.timeRemaining,
+          totalTime: questions[interviewState.currentQuestionIndex]?.time_limit || 120,
+          candidateName: candidateInfo.name,
+          candidateEmail: candidateInfo.email,
+          phase: interviewState.phase,
+          answeredQuestions: interviewState.answers.length,
+        }}
+        sessionToken={sessionToken || ''}
+      />
     </Box>
   );
 };

@@ -8,8 +8,8 @@ import os
 sys.path.append('/Users/gokulnandakumar/Developer/github_push/AI-PoweredInterviewAssistant/backend')
 
 # Set test environment variables
-os.environ['CORS_ORIGINS'] = 'https://example.com,https://ai-powered-interview-assistant-chi.vercel.app,https://test.com'
-os.environ['WEBSOCKET_ORIGINS'] = 'https://example.com,https://ai-powered-interview-assistant-chi.vercel.app'
+os.environ['CORS_ORIGINS'] = 'https://example.com,http://localhost:3000,https://test.com'
+os.environ['WEBSOCKET_ORIGINS'] = 'https://example.com,http://localhost:3000'
 
 try:
     from app.core.config import settings
