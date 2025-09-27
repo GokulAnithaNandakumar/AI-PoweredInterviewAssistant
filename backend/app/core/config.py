@@ -19,10 +19,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
     # CORS - Handle both string and list formats
-    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:3000"
+    CORS_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app"
 
     # WebSocket
-    WEBSOCKET_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:3000"
+    WEBSOCKET_ORIGINS: Union[str, List[str]] = "https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app"
 
     # Email Configuration - SMTP Fallback
     MAIL_USERNAME: str = ""

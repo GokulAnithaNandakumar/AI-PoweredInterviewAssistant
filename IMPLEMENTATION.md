@@ -125,7 +125,7 @@ SECRET_KEY=your-256-bit-secret-key-here
 GEMINI_API_KEY=your-gemini-api-key-from-google-ai-studio
 
 # Frontend .env (already created)
-VITE_API_URL=http://localhost:8000/api
+VITE_API_URL=https://ai-poweredinterviewassistant.onrender.com/api
 ```
 
 ## 🏃‍♂️ **Immediate Startup Instructions**
@@ -162,10 +162,10 @@ npm run dev
 
 ```bash
 # Backend API will be available at:
-http://localhost:8000/docs  # Interactive API documentation
+https://ai-poweredinterviewassistant.onrender.com/docs  # Interactive API documentation
 
 # Frontend will be available at:
-http://localhost:3000       # React development server
+https://ai-powered-interview-assistant-chi.vercel.app       # React development server
 ```
 
 ## 🎯 **System Flow**

@@ -178,7 +178,7 @@ GEMINI_API_KEY=your-gemini-api-key
 
 **Frontend (`frontend/.env`):**
 ```env
-VITE_API_URL=http://localhost:8000/api
+VITE_API_URL=https://ai-poweredinterviewassistant.onrender.com/api
 ```
 
 ### **3. Database Setup (Neon)**

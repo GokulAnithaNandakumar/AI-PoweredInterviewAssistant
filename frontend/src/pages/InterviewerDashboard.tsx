@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -39,8 +38,7 @@ import {
   Logout as LogoutIcon,
   Refresh as RefreshIcon,
   Description as DescriptionIcon,
-  OpenInNew as OpenInNewIcon,
-  Visibility as ViewIcon,
+  OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import { authAPI, dashboardAPI } from '../services/api';
 
@@ -81,7 +79,6 @@ interface DashboardProps {
 }
 
 const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
-  const navigate = useNavigate();
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     total_interviews: 0,
@@ -104,8 +101,6 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   // Table pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState<'score' | 'date' | 'name'>('score');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Load dashboard data
   const loadDashboardData = async () => {
@@ -125,44 +120,6 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       setError(errorMessage);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Sorting function
-  const sortSessions = (sessions: InterviewSession[]) => {
-    return [...sessions].sort((a, b) => {
-      let valueA, valueB;
-
-      switch (sortBy) {
-        case 'score':
-          valueA = a.total_score ?? -1;
-          valueB = b.total_score ?? -1;
-          break;
-        case 'name':
-          valueA = (a.candidate_name || a.candidate_email).toLowerCase();
-          valueB = (b.candidate_name || b.candidate_email).toLowerCase();
-          break;
-        case 'date':
-          valueA = new Date(a.created_at).getTime();
-          valueB = new Date(b.created_at).getTime();
-          break;
-        default:
-          return 0;
-      }
-
-      if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
-      if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-  };
-
-  // Handle sort column click
-  const handleSort = (column: 'score' | 'date' | 'name') => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(column);
-      setSortOrder(column === 'score' ? 'desc' : 'asc'); // Default to desc for score, asc for others
     }
   };
 
@@ -378,52 +335,16 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                    onClick={() => handleSort('name')}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      Candidate
-                      {sortBy === 'name' && (
-                        <Typography variant="caption">
-                          {sortOrder === 'asc' ? '↑' : '↓'}
-                        </Typography>
-                      )}
-                    </Box>
-                  </TableCell>
+                  <TableCell>Candidate</TableCell>
                   <TableCell>Resume</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                    onClick={() => handleSort('score')}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      Score
-                      {sortBy === 'score' && (
-                        <Typography variant="caption">
-                          {sortOrder === 'asc' ? '↑' : '↓'}
-                        </Typography>
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell
-                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                    onClick={() => handleSort('date')}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      Created
-                      {sortBy === 'date' && (
-                        <Typography variant="caption">
-                          {sortOrder === 'asc' ? '↑' : '↓'}
-                        </Typography>
-                      )}
-                    </Box>
-                  </TableCell>
+                  <TableCell>Score</TableCell>
+                  <TableCell>Created</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortSessions(sessions)
+                {sessions
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((session) => (
                     <TableRow key={session.id} hover>
@@ -469,14 +390,6 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                       <TableCell>{formatDate(session.created_at)}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton
-                            size="small"
-                            onClick={() => navigate(`/candidate/${session.session_token}`)}
-                            title="View candidate details"
-                            color="primary"
-                          >
-                            <ViewIcon />
-                          </IconButton>
                           <IconButton
                             size="small"
                             onClick={() => copyInterviewLink(session.session_token)}

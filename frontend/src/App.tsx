@@ -11,7 +11,6 @@ import { authAPI } from './services/api';
 import AuthPage from './pages/AuthPage';
 import InterviewerDashboard from './pages/InterviewerDashboard';
 import CandidateInterviewPage from './pages/CandidateInterviewPage';
-import CandidateDetailPage from './pages/CandidateDetailPage';
 
 // Create a modern theme
 const theme = createTheme({
@@ -204,16 +203,6 @@ function AppContent() {
     }}>
       <Routes>
         <Route path="/interview/:sessionToken" element={<CandidateInterviewPage />} />
-        <Route
-          path="/candidate/:sessionToken"
-          element={
-            user ? (
-              <CandidateDetailPage />
-            ) : (
-              <Navigate to="/auth" replace />
-            )
-          }
-        />
         <Route
           path="/auth"
           element={user ? <Navigate to="/dashboard" replace /> : <AuthPage onLogin={handleLogin} />}
