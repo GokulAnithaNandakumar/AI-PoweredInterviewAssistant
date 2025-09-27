@@ -133,22 +133,38 @@ async def get_session_details(
         InterviewAnswer.session_id == session_id
     ).all()
 
+    # Optionally, get chat history if you store it (empty list for now)
+    chat_history = []
+    if hasattr(session, 'chat_messages'):
+        chat_history = [
+            {
+                "id": m.id,
+                "sender": getattr(m, 'sender', ''),
+                "message": getattr(m, 'message', ''),
+                "message_type": getattr(m, 'message_type', ''),
+                "metadata": getattr(m, 'metadata', None),
+                "timestamp": m.created_at.isoformat() if hasattr(m, 'created_at') and m.created_at else ''
+            }
+            for m in getattr(session, 'chat_messages', [])
+        ]
+
     return {
-        "session": {
-            "id": session.id,
-            "session_token": session.session_token,
-            "candidate_email": session.candidate_email,
-            "candidate_name": session.candidate_name,
-            "resume_url": session.resume_url,
-            "status": session.status,
-            "current_question_index": session.current_question_index,
-            "total_score": session.total_score,
-            "created_at": session.created_at,
-            "started_at": session.started_at,
-            "completed_at": session.completed_at,
-            "ai_summary": safe_json_loads(session.ai_summary),
-            "student_ai_summary": safe_json_loads(session.student_ai_summary)
-        },
+        "id": session.id,
+        "session_token": session.session_token,
+        "candidate_email": session.candidate_email,
+        "candidate_name": session.candidate_name,
+        "candidate_phone": session.candidate_phone,
+        "resume_url": session.resume_url,
+        "resume_filename": session.resume_filename,
+        "status": session.status,
+        "current_question_index": session.current_question_index,
+        "total_score": session.total_score,
+        "created_at": session.created_at.isoformat() if session.created_at else None,
+        "started_at": session.started_at.isoformat() if session.started_at else None,
+        "completed_at": session.completed_at.isoformat() if session.completed_at else None,
+        "ai_summary": session.ai_summary,
+        "student_ai_summary": session.student_ai_summary,
+        "retry_count": getattr(session, 'retry_count', 0),
         "questions": [{
             "id": q.id,
             "question_number": q.question_number,
@@ -165,5 +181,6 @@ async def get_session_details(
             "score": a.score,
             "ai_feedback": a.ai_feedback,
             "submitted_at": a.submitted_at
-        } for a in answers]
+        } for a in answers],
+        "chat_history": chat_history
     }

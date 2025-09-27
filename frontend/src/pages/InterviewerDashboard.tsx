@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { InterviewQuestion, InterviewAnswer, ChatMessage } from '../types';
 import {
   Box,
   Container,
@@ -78,7 +79,49 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+interface CandidateDetails {
+  id: number;
+  session_token: string;
+  candidate_name?: string;
+  candidate_email?: string;
+  candidate_phone?: string;
+  resume_url?: string;
+  resume_filename?: string;
+  status: 'created' | 'in_progress' | 'completed' | 'abandoned';
+  current_question_index: number;
+  total_score: number;
+  ai_summary?: string;
+  student_ai_summary?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  retry_count?: number;
+  questions: InterviewQuestion[];
+  answers: InterviewAnswer[];
+  chat_history: ChatMessage[];
+}
+
+const MAX_RETRIES = 2;
+
 const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+  // Candidate detail modal state
+  const [candidateDetailOpen, setCandidateDetailOpen] = useState(false);
+  const [candidateDetail, setCandidateDetail] = useState<CandidateDetails | null>(null);
+  const [candidateDetailLoading, setCandidateDetailLoading] = useState(false);
+  // Open candidate detail modal
+  const openCandidateDetail = async (sessionId: number) => {
+    setCandidateDetailLoading(true);
+    setCandidateDetailOpen(true);
+    try {
+      const details = await dashboardAPI.getSessionDetails(sessionId);
+      setCandidateDetail(details);
+    } catch {
+      setError('Failed to load candidate details');
+      setCandidateDetailOpen(false);
+    } finally {
+      setCandidateDetailLoading(false);
+    }
+  };
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     total_interviews: 0,
@@ -399,6 +442,14 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                           </IconButton>
                           <IconButton
                             size="small"
+                            onClick={() => openCandidateDetail(session.id)}
+                            title="View details"
+                            color="primary"
+                          >
+                            <AssessmentIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
                             onClick={() => deleteSession(session.id)}
                             title="Delete session"
                             color="error"
@@ -406,6 +457,93 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                             <DeleteIcon />
                           </IconButton>
                         </Box>
+        {/* Candidate Detail Modal */}
+        <Dialog open={candidateDetailOpen} onClose={() => setCandidateDetailOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>Candidate Details</DialogTitle>
+          <DialogContent dividers>
+            {candidateDetailLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+                <CircularProgress />
+              </Box>
+            ) : candidateDetail ? (
+              <Box>
+                <Typography variant="h6" gutterBottom>Profile</Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Typography>Name: {candidateDetail.candidate_name?.trim() ? candidateDetail.candidate_name : 'Not provided'}</Typography>
+                  <Typography>Email: {candidateDetail.candidate_email?.trim() ? candidateDetail.candidate_email : 'Not provided'}</Typography>
+                  <Typography>Phone: {candidateDetail.candidate_phone?.trim() ? candidateDetail.candidate_phone : 'Not provided'}</Typography>
+                  <Typography>Resume: {candidateDetail.resume_url ? (
+                    <a href={candidateDetail.resume_url} target="_blank" rel="noopener noreferrer">View Resume</a>
+                  ) : 'Not provided'}</Typography>
+                  <Typography>Status: {candidateDetail.status ? candidateDetail.status.toUpperCase() : 'Not provided'}</Typography>
+                  <Typography>Retry/Continue Count: {candidateDetail.retry_count ?? 0} / {MAX_RETRIES}</Typography>
+                </Box>
+                <Typography variant="h6" gutterBottom>Interview Questions & Answers</Typography>
+                <TableContainer component={Paper} sx={{ mb: 2 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>#</TableCell>
+                        <TableCell>Question</TableCell>
+                        <TableCell>Difficulty</TableCell>
+                        <TableCell>Answer</TableCell>
+                        <TableCell>Score</TableCell>
+                        <TableCell>AI Feedback</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {candidateDetail.questions.map((q) => {
+                        const answer = candidateDetail.answers.find(a => {
+                          // Support both a.question?.id and a.question_id
+                          if (a.question && typeof a.question.id !== 'undefined') {
+                            return a.question.id === q.id;
+                          }
+                          if ('question_id' in a) {
+                            // @ts-ignore
+                            return a.question_id === q.id;
+                          }
+                          return false;
+                        });
+                        return (
+                          <TableRow key={q.id}>
+                            <TableCell>{q.question_number}</TableCell>
+                            <TableCell>{q.question_text}</TableCell>
+                            <TableCell>{q.difficulty}</TableCell>
+                            <TableCell>{answer?.answer_text || <i>Not answered</i>}</TableCell>
+                            <TableCell>{answer?.score !== undefined ? answer.score : '-'}</TableCell>
+                            <TableCell>{answer?.ai_feedback || '-'}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <Typography variant="h6" gutterBottom>AI Summary</Typography>
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography>{candidateDetail.ai_summary || 'No summary available.'}</Typography>
+                </Paper>
+                <Typography variant="h6" gutterBottom>Chat History</Typography>
+                <Paper sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}>
+                  {candidateDetail.chat_history && candidateDetail.chat_history.length > 0 ? (
+                    candidateDetail.chat_history.map((msg, idx) => (
+                      <Box key={idx} sx={{ mb: 1 }}>
+                        <Typography variant="caption" color="text.secondary">[{msg.timestamp}] {msg.sender} ({msg.message_type})</Typography>
+                        <Typography>{msg.message}</Typography>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography>No chat history.</Typography>
+                  )}
+                </Paper>
+              </Box>
+            ) : (
+              <Typography>No candidate details found.</Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCandidateDetailOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}

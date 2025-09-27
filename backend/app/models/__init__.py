@@ -37,12 +37,14 @@ class InterviewSession(Base):
     # Store all resume parsing results as JSON
     resume_summary = Column(JSON, nullable=True)
 
+
     # Interview Status
     status = Column(String, default="created")  # created, in_progress, completed, abandoned
     current_question_index = Column(Integer, default=0)
     total_score = Column(Float, default=0.0)
     ai_summary = Column(Text, nullable=True)
     student_ai_summary = Column(Text, nullable=True)  # AI analysis of student's overall performance
+    retry_count = Column(Integer, default=0)  # Track retries/quits/continues
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
