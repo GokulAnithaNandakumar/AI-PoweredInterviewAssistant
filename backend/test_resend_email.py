@@ -20,7 +20,7 @@ async def test_resend_email_service():
     # Test parameters
     test_email = "temp.gokul04@gmail.com"  # Using your requested email
     test_name = "Test User"
-    test_link = "https://ai-powered-interview-assistant-chi.vercel.app/interview/resend-test-123"
+    test_link = "http://localhost:3000/interview/resend-test-123"
 
     start_time = time.time()
 

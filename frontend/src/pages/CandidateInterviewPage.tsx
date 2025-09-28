@@ -33,6 +33,7 @@ interface CandidateInfo {
 }
 
 interface Question {
+  id?: number;
   question: string;
   difficulty: 'easy' | 'medium' | 'hard';
   time_limit: number;
@@ -68,6 +69,45 @@ interface SessionInfo {
   created_at: string;
 }
 
+interface ContinueStatus {
+  can_continue: boolean;
+  has_progress: boolean;
+  retry_count: number;
+  max_retries: number;
+  total_questions: number;
+  answered_questions: number;
+  resume_uploaded: boolean;
+  next_question_index: number;
+  session_status: string;
+  reason?: string;
+  candidate_info: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
+
+interface ContinueResponse {
+  success: boolean;
+  message: string;
+  retry_count: number;
+  questions: Question[];
+  existing_answers: Array<{
+    question_id: number;
+    answer_text: string;
+    time_taken: number;
+    score: number;
+  }>;
+  next_question_index: number;
+  candidate_info: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
+
+const TOTAL_QUESTIONS = 6; // Interview always has 6 questions
+
 const CandidateInterviewPage: React.FC = () => {
   const { sessionToken } = useParams<{ sessionToken: string }>();
   const navigate = useNavigate();
@@ -76,6 +116,9 @@ const CandidateInterviewPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
+  const [continueStatus, setContinueStatus] = useState<ContinueStatus | null>(null);
+  const [showContinueDialog, setShowContinueDialog] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Interview state management
   const [interviewState, setInterviewState] = useState<InterviewState>(() => {
@@ -128,17 +171,133 @@ const CandidateInterviewPage: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Load session info
+  // Handle continuing interview
+  const handleContinueInterview = useCallback(async (showDialog = true) => {
+    if (!sessionToken) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/continue-interview`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const data: ContinueResponse = await response.json();
+
+        // Set up questions
+        setQuestions(data.questions);
+
+        // Pre-fill answers
+        const answersArray = new Array(data.questions.length).fill('');
+        data.existing_answers.forEach(answer => {
+          const questionIndex = data.questions.findIndex(q => q.id === answer.question_id);
+          if (questionIndex !== -1) {
+            answersArray[questionIndex] = answer.answer_text;
+          }
+        });
+
+        // Update interview state - only complete when all 6 questions are answered
+        setInterviewState(prev => ({
+          ...prev,
+          phase: data.next_question_index >= TOTAL_QUESTIONS ? 'completed' : 'interview',
+          currentQuestionIndex: data.next_question_index >= TOTAL_QUESTIONS ? TOTAL_QUESTIONS : data.next_question_index,
+          answers: answersArray,
+          timeRemaining: data.next_question_index < TOTAL_QUESTIONS ? 0 : prev.timeRemaining // Reset timer to trigger auto-start
+        }));
+
+        // Pre-fill candidate info if available
+        if (data.candidate_info.name || data.candidate_info.email || data.candidate_info.phone) {
+          setCandidateInfo({
+            name: data.candidate_info.name || '',
+            email: data.candidate_info.email || '',
+            phone: data.candidate_info.phone || ''
+          });
+        }
+
+        // Add continue message to chat
+        const continueMessage: ChatMessage = {
+          type: 'system',
+          content: `${data.message}. Resuming from question ${data.next_question_index + 1}.`,
+          timestamp: new Date()
+        };
+
+        setChatMessages(prev => [...prev, continueMessage]);
+
+        // If there's a question to show, show it
+        if (data.next_question_index < TOTAL_QUESTIONS) {
+          const currentQuestion = data.questions[data.next_question_index];
+
+          setTimeout(() => {
+            setChatMessages(prev => [
+              ...prev,
+              {
+                type: 'question',
+                content: `**Question ${data.next_question_index + 1}** (${currentQuestion.difficulty.toUpperCase()} - ${currentQuestion.time_limit}s)\n\n${currentQuestion.question}`,
+                timestamp: new Date(),
+                questionData: currentQuestion,
+                isCurrentQuestion: true
+              },
+              {
+                type: 'timer',
+                content: `⏱️ You have ${currentQuestion.time_limit} seconds to answer this question.`,
+                timestamp: new Date()
+              }
+            ]);
+
+            setCurrentAnswer('');
+            // Timer will auto-start via the auto-timer useEffect
+          }, 1000);
+        }
+
+        if (showDialog) {
+          setShowContinueDialog(false);
+        }
+
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || 'Failed to continue interview');
+      }
+    } catch {
+      setError('Failed to continue interview');
+    }
+  }, [sessionToken]);
+
+  // Load session info and check for continue status
   const loadSessionInfo = useCallback(async () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/info`);
+      // First, get session info
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/info`);
       if (response.ok) {
         const data = await response.json();
         setSessionInfo(data);
 
-        // Add welcome message
+        // Check continue status
+        const continueResponse = await fetch(`http://localhost:8000/api/interview/${sessionToken}/continue-status`);
+        if (continueResponse.ok) {
+          const continueData = await continueResponse.json();
+          console.log('Continue status data:', continueData);
+          setContinueStatus(continueData);
+
+          // Check if retry limit exceeded
+          if (!continueData.can_continue && continueData.reason === "Maximum retry limit reached") {
+            setError("You have reached the maximum number of retry attempts (2) for this interview.");
+            return;
+          }
+
+          // Only show continue dialog on initial page load if there are actual questions and some progress
+          if (isInitialLoad &&
+              continueData.has_progress &&
+              continueData.can_continue &&
+              continueData.total_questions > 0 &&
+              continueData.answered_questions < TOTAL_QUESTIONS) {
+            setShowContinueDialog(true);
+            setIsInitialLoad(false);
+            return; // Exit early to show dialog
+          }
+        }
+
+        // Add welcome message only if no progress
         if (chatMessages.length === 0) {
           setChatMessages([{
             type: 'system',
@@ -146,15 +305,19 @@ const CandidateInterviewPage: React.FC = () => {
             timestamp: new Date()
           }]);
         }
+
+        // Mark initial load as complete
+        setIsInitialLoad(false);
       } else {
         setError('Session not found or expired');
       }
-    } catch {
+    } catch (error) {
+      console.error('Error loading session info:', error);
       setError('Failed to load session information');
     } finally {
       setLoading(false);
     }
-  }, [sessionToken, chatMessages.length]);
+  }, [sessionToken, chatMessages.length, isInitialLoad]);
 
   useEffect(() => {
     if (sessionToken) {
@@ -191,6 +354,22 @@ const CandidateInterviewPage: React.FC = () => {
     setIsTimerActive(false);
   }, []);
 
+  // Auto-start timer when interview phase becomes active
+  useEffect(() => {
+    if (interviewState.phase === 'interview' &&
+        questions.length > 0 &&
+        interviewState.currentQuestionIndex < TOTAL_QUESTIONS &&
+        !isTimerActive &&
+        interviewState.timeRemaining === 0) {
+
+      const currentQuestion = questions[interviewState.currentQuestionIndex];
+      if (currentQuestion) {
+        console.log(`Auto-starting timer for question ${interviewState.currentQuestionIndex + 1}`);
+        startTimer(currentQuestion.time_limit);
+      }
+    }
+  }, [interviewState.phase, interviewState.currentQuestionIndex, questions, isTimerActive, interviewState.timeRemaining, startTimer]);
+
   // Watch for timer expiry and auto-submit
   useEffect(() => {
     if (interviewState.timeRemaining === 0 && isTimerActive && interviewState.phase === 'interview') {
@@ -208,11 +387,11 @@ const CandidateInterviewPage: React.FC = () => {
 
       const answer = currentAnswer.trim() || "[No answer provided - time expired]";
 
-      if (sessionToken && interviewState.currentQuestionIndex < questions.length) {
+      if (sessionToken && interviewState.currentQuestionIndex < TOTAL_QUESTIONS) {
         const currentQuestion = questions[interviewState.currentQuestionIndex];
 
         // Auto-submit via API
-        fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
+        fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -248,7 +427,7 @@ const CandidateInterviewPage: React.FC = () => {
 
             // Move to next question or complete
             setTimeout(() => {
-              if (nextQuestionIndex < questions.length) {
+              if (nextQuestionIndex < TOTAL_QUESTIONS) {
                 const nextQuestion = questions[nextQuestionIndex];
 
                 setChatMessages(prev => [
@@ -300,7 +479,7 @@ const CandidateInterviewPage: React.FC = () => {
       const formData = new FormData();
       formData.append('resume', selectedFile);
 
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/upload-resume`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/upload-resume`, {
         method: 'POST',
         body: formData
       });
@@ -348,7 +527,7 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/candidate-info`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/candidate-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -382,7 +561,7 @@ const CandidateInterviewPage: React.FC = () => {
     setGeneratingQuestions(true);
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/start-interview`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/start-interview`, {
         method: 'POST',
       });
 
@@ -451,7 +630,7 @@ const CandidateInterviewPage: React.FC = () => {
 
   // Submit answer
   const submitAnswer = async (answer: string, autoSubmit: boolean = false) => {
-    if (!sessionToken || interviewState.currentQuestionIndex >= questions.length) return;
+    if (!sessionToken || interviewState.currentQuestionIndex >= TOTAL_QUESTIONS) return;
 
     setSubmittingAnswer(true);
     stopTimer();
@@ -471,7 +650,7 @@ const CandidateInterviewPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
+      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -512,7 +691,7 @@ const CandidateInterviewPage: React.FC = () => {
 
         // Move to next question or complete
         setTimeout(() => {
-          if (nextQuestionIndex < questions.length) {
+          if (nextQuestionIndex < TOTAL_QUESTIONS) {
             askNextQuestion(nextQuestionIndex, questions);
           } else {
             completeInterview();
@@ -599,9 +778,111 @@ const CandidateInterviewPage: React.FC = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%)',
-        zIndex: 0
+        background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%)',
+        zIndex: -1
       }} />
+
+      {/* Continue Interview Dialog */}
+      {showContinueDialog && continueStatus && (
+        <Box sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 2
+        }}>
+          <Card sx={{
+            maxWidth: 500,
+            width: '100%',
+            borderRadius: 4,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          }}>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h5" sx={{
+                fontWeight: 700,
+                mb: 2,
+                color: '#1a202c',
+                textAlign: 'center'
+              }}>
+                Continue Your Interview?
+              </Typography>
+
+              <Typography variant="body1" sx={{
+                mb: 3,
+                color: '#4a5568',
+                textAlign: 'center',
+                lineHeight: 1.6
+              }}>
+                You have previously started this interview. You can continue from where you left off.
+              </Typography>
+
+              <Box sx={{
+                backgroundColor: '#f7fafc',
+                p: 3,
+                borderRadius: 2,
+                mb: 3,
+                border: '1px solid #e2e8f0'
+              }}>
+                <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
+                  <strong>Progress:</strong> {continueStatus.answered_questions}/{continueStatus.total_questions} questions answered
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
+                  <strong>Attempts:</strong> {continueStatus.retry_count}/2
+                </Typography>
+              </Box>
+
+              <Box sx={{
+                display: 'flex',
+                gap: 2,
+                justifyContent: 'center',
+                mt: 3
+              }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setShowContinueDialog(false);
+                    // Reset to fresh state
+                    setInterviewState({
+                      phase: 'upload',
+                      currentQuestionIndex: 0,
+                      answers: [],
+                      timeRemaining: 0
+                    });
+                  }}
+                  sx={{
+                    borderColor: '#e2e8f0',
+                    color: '#4a5568',
+                    '&:hover': {
+                      borderColor: '#cbd5e0',
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    }
+                  }}
+                >
+                  Start Fresh
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={() => handleContinueInterview(true)}
+                  sx={{
+                    backgroundColor: '#667eea',
+                    '&:hover': {
+                      backgroundColor: '#5a67d8'
+                    }
+                  }}
+                >
+                  Continue Interview
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
 
       {/* Content Container */}
       <Box sx={{ position: 'relative', zIndex: 1, p: { xs: 2, sm: 3, md: 4 } }}>
@@ -647,8 +928,17 @@ const CandidateInterviewPage: React.FC = () => {
                   }}>
                     <CardContent sx={{ p: 3, textAlign: 'center' }}>
                       <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                        Question {interviewState.currentQuestionIndex + 1} of {questions.length}
+                        Question {interviewState.currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
                       </Typography>
+                      {continueStatus && continueStatus.retry_count > 0 && (
+                        <Typography variant="body2" sx={{
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          mb: 1,
+                          fontSize: '0.85rem'
+                        }}>
+                          Attempt {continueStatus.retry_count}/{continueStatus.max_retries}
+                        </Typography>
+                      )}
                       {isTimerActive && (
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                           <TimerIcon sx={{
@@ -676,7 +966,7 @@ const CandidateInterviewPage: React.FC = () => {
                 <Box sx={{ mt: 3 }}>
                   <LinearProgress
                     variant="determinate"
-                    value={(interviewState.currentQuestionIndex / questions.length) * 100}
+                    value={(interviewState.currentQuestionIndex / TOTAL_QUESTIONS) * 100}
                     sx={{
                       height: 12,
                       borderRadius: 6,
@@ -693,7 +983,7 @@ const CandidateInterviewPage: React.FC = () => {
                     color: 'text.secondary',
                     fontWeight: 500
                   }}>
-                    Progress: {Math.round((interviewState.currentQuestionIndex / questions.length) * 100)}%
+                    Progress: {Math.round((interviewState.currentQuestionIndex / TOTAL_QUESTIONS) * 100)}%
                   </Typography>
                 </Box>
               )}
@@ -975,7 +1265,7 @@ const CandidateInterviewPage: React.FC = () => {
           )}
 
           {/* Modern Interview Phase */}
-          {interviewState.phase === 'interview' && interviewState.currentQuestionIndex < questions.length && (
+          {interviewState.phase === 'interview' && interviewState.currentQuestionIndex < TOTAL_QUESTIONS && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {/* Current Question Card */}
               <Card elevation={0} sx={{

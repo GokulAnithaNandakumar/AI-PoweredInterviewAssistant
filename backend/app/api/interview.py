@@ -57,6 +57,154 @@ def get_session_info(
 
     return session
 
+@router.get("/{session_token}/continue-status")
+async def get_continue_status(session_token: str, db: Session = Depends(get_db)):
+    """Get the continue status for an interview session."""
+    from app.models import InterviewSession, InterviewQuestion, InterviewAnswer
+
+    # Get the interview session
+    session = db.query(InterviewSession).filter(InterviewSession.session_token == session_token).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Check if retries are exceeded
+    if session.retry_count >= 2:
+        return {
+            "can_continue": False,
+            "reason": "Maximum retry attempts reached",
+            "retry_count": session.retry_count,
+            "has_progress": False
+        }
+    
+    # Get questions and answers
+    questions = db.query(InterviewQuestion).filter(InterviewQuestion.session_id == session.id).all()
+    answers = db.query(InterviewAnswer).filter(InterviewAnswer.session_id == session.id).all()
+    
+    total_questions = len(questions)
+    total_answers = len(answers)
+    
+    # Determine if there's progress (questions exist and either in_progress or have answers)
+    has_progress = total_questions > 0 and (session.status == "in_progress" or total_answers > 0)
+    
+    # If all 6 questions answered, interview is complete
+    if total_answers >= 6:
+        return {
+            "can_continue": False,
+            "reason": "Interview completed",
+            "retry_count": session.retry_count,
+            "has_progress": True,
+            "total_questions": total_questions,
+            "answered_questions": total_answers
+        }
+    
+    # Find first unanswered question
+    answered_question_numbers = []
+    for answer in answers:
+        # Get the question number from the related question
+        question = db.query(InterviewQuestion).filter(InterviewQuestion.id == answer.question_id).first()
+        if question:
+            answered_question_numbers.append(question.question_number)
+    
+    first_unanswered_index = 0
+    for i in range(1, total_questions + 1):
+        if i not in answered_question_numbers:
+            first_unanswered_index = i - 1
+            break
+    
+    # Build questions list safely
+    questions_list = []
+    try:
+        sorted_questions = sorted(questions, key=lambda x: x.question_number)
+        for q in sorted_questions:
+            questions_list.append({
+                "question": q.question_text,
+                "difficulty": q.difficulty,
+                "time_limit": q.time_limit,
+                "question_number": q.question_number
+            })
+    except Exception as e:
+        print(f"Error building questions list: {e}")
+        questions_list = []
+    
+    return {
+        "can_continue": True,
+        "has_progress": has_progress,
+        "retry_count": session.retry_count,
+        "total_questions": total_questions,
+        "answered_questions": total_answers,
+        "next_question_index": first_unanswered_index,
+        "questions": questions_list
+    }
+
+@router.post("/{session_token}/continue-interview")
+def continue_interview(
+    session_token: str,
+    db: Session = Depends(get_db)
+):
+    """Continue an existing interview session."""
+    from app.models import InterviewSession, InterviewQuestion, InterviewAnswer
+
+    session = db.query(InterviewSession).filter(InterviewSession.session_token == session_token).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Check if can continue
+    if session.status == "completed":
+        raise HTTPException(status_code=400, detail="Interview already completed")
+
+    if session.retry_count >= 2:
+        raise HTTPException(status_code=400, detail="Maximum retry limit reached")
+
+    # Increment retry count
+    session.retry_count += 1
+    session.status = "in_progress"
+    db.commit()
+
+    # Get existing questions and answers
+    questions = db.query(InterviewQuestion).filter(
+        InterviewQuestion.session_id == session.id
+    ).order_by(InterviewQuestion.question_number).all()
+
+    answers = db.query(InterviewAnswer).filter(
+        InterviewAnswer.session_id == session.id
+    ).all()
+
+    # Map answers by question_id
+    answer_map = {answer.question_id: answer for answer in answers if answer.answer_text}
+
+    # Find first unanswered question
+    first_unanswered_index = None
+    for i, question in enumerate(questions):
+        if question.id not in answer_map:
+            first_unanswered_index = i
+            break
+
+    return {
+        "success": True,
+        "message": f"Interview continued (Attempt {session.retry_count}/2)",
+        "retry_count": session.retry_count,
+        "questions": [{
+            "id": q.id,
+            "question_number": q.question_number,
+            "difficulty": q.difficulty,
+            "question": q.question_text,
+            "time_limit": q.time_limit,
+            "category": "general"
+        } for q in questions],
+        "existing_answers": [{
+            "question_id": a.question_id,
+            "answer_text": a.answer_text,
+            "time_taken": a.time_taken,
+            "score": a.score
+        } for a in answers if a.answer_text],
+        "next_question_index": first_unanswered_index if first_unanswered_index is not None else len(questions),
+        "candidate_info": {
+            "name": session.candidate_name,
+            "email": session.candidate_email,
+            "phone": session.candidate_phone
+        }
+    }
+
 @router.post("/{session_token}/upload-resume", response_model=ResumeUploadResponse)
 async def upload_resume(
     session_token: str,
@@ -111,7 +259,7 @@ async def upload_resume(
         resume_url = storage_service.store_resume(content, resume.filename, candidate_name)
     except Exception as e:
         print(f"Cloudinary storage failed, using fallback: {str(e)}")
-        resume_url = "https://ai-poweredinterviewassistant.onrender.com/temp-resume-url"
+        resume_url = "http://localhost:8000/temp-resume-url"
 
     # Update session with extracted info and resume storage info
     update_data = {

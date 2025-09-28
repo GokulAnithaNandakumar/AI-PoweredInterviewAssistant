@@ -19,7 +19,7 @@ async def test_email_service():
     # Test parameters
     test_email = "gokul.nandakumar04@gmail.com"
     test_name = "Test User"
-    test_link = "https://ai-powered-interview-assistant-chi.vercel.app/interview/test-session-123"
+    test_link = "http://localhost:3000/interview/test-session-123"
 
     try:
         print(f"📧 Sending test email to {test_email}")

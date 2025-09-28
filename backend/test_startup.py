@@ -9,8 +9,8 @@ import traceback
 sys.path.append('/Users/gokulnandakumar/Developer/github_push/AI-PoweredInterviewAssistant/backend')
 
 # Set test environment variables to simulate Render
-os.environ['CORS_ORIGINS'] = 'https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app'
-os.environ['WEBSOCKET_ORIGINS'] = 'https://ai-powered-interview-assistant-chi.vercel.app,https://ai-powered-interview-assistant-chi.vercel.app'
+os.environ['CORS_ORIGINS'] = 'http://localhost:3000,http://localhost:3000'
+os.environ['WEBSOCKET_ORIGINS'] = 'http://localhost:3000,http://localhost:3000'
 os.environ['DATABASE_URL'] = 'postgresql://test:test@localhost/test'
 os.environ['SECRET_KEY'] = 'test-secret-key-for-deployment'
 os.environ['GEMINI_API_KEY'] = 'test-api-key'

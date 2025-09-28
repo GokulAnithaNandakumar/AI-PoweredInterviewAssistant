@@ -85,8 +85,8 @@ def create_interview_session(
 
     return {
         "session_token": session_token,
-        "candidate_link": f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}",
-        "dashboard_link": f"https://ai-powered-interview-assistant-chi.vercel.app/dashboard/{session_token}"
+        "candidate_link": f"http://localhost:3000/interview/{session_token}",
+        "dashboard_link": f"http://localhost:3000/dashboard/{session_token}"
     }
 
 @router.post("/send-interview-link")
@@ -114,7 +114,7 @@ async def send_interview_link(
 
     # Create session
     session_token = InterviewerService.create_session_token(db, interviewer.id)
-    interview_link = f"https://ai-powered-interview-assistant-chi.vercel.app/interview/{session_token}"
+    interview_link = f"http://localhost:3000/interview/{session_token}"
 
     # Send email
     email_result = await EmailService.send_interview_link(
@@ -129,7 +129,7 @@ async def send_interview_link(
         return {
             "session_token": session_token,
             "candidate_link": interview_link,
-            "dashboard_link": f"https://ai-powered-interview-assistant-chi.vercel.app/dashboard/{session_token}",
+            "dashboard_link": f"http://localhost:3000/dashboard/{session_token}",
             "email_sent": False,
             "email_error": email_result["message"],
             "warning": "Session created but email could not be sent. Please share the link manually."
@@ -138,7 +138,7 @@ async def send_interview_link(
     return {
         "session_token": session_token,
         "candidate_link": interview_link,
-        "dashboard_link": f"https://ai-powered-interview-assistant-chi.vercel.app/dashboard/{session_token}",
+        "dashboard_link": f"http://localhost:3000/dashboard/{session_token}",
         "email_sent": True,
         "message": f"Interview link sent successfully to {request.candidate_email}"
     }
