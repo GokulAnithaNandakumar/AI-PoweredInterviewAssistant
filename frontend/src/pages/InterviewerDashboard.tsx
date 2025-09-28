@@ -51,7 +51,7 @@ interface InterviewSession {
   candidate_phone: string | null;
   resume_url: string | null;
   resume_filename: string | null;
-  status: 'created' | 'in_progress' | 'completed' | 'abandoned';
+  status: 'created' | 'in_progress' | 'completed' | 'abandoned' | 'max_retries_reached';
   current_question_index: number;
   total_score: number;
   created_at: string;
@@ -87,7 +87,7 @@ interface CandidateDetails {
   candidate_phone?: string;
   resume_url?: string;
   resume_filename?: string;
-  status: 'created' | 'in_progress' | 'completed' | 'abandoned';
+  status: 'created' | 'in_progress' | 'completed' | 'abandoned' | 'max_retries_reached';
   current_question_index: number;
   total_score: number;
   ai_summary?: string;
@@ -222,6 +222,7 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       case 'in_progress': return 'warning';
       case 'completed': return 'success';
       case 'abandoned': return 'error';
+      case 'max_retries_reached': return 'error';
       default: return 'default';
     }
   };
@@ -422,7 +423,7 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={session.status.toUpperCase()}
+                          label={session.status === 'max_retries_reached' ? 'MAXIMUM RETRIES REACHED' : session.status.toUpperCase()}
                           color={getStatusColor(session.status)}
                           size="small"
                         />
@@ -475,7 +476,7 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   <Typography>Resume: {candidateDetail.resume_url ? (
                     <a href={candidateDetail.resume_url} target="_blank" rel="noopener noreferrer">View Resume</a>
                   ) : 'Not provided'}</Typography>
-                  <Typography>Status: {candidateDetail.status ? candidateDetail.status.toUpperCase() : 'Not provided'}</Typography>
+                  <Typography>Status: {candidateDetail.status === 'max_retries_reached' ? 'Maximum Retries Reached' : candidateDetail.status ? candidateDetail.status.toUpperCase() : 'Not provided'}</Typography>
                   <Typography>Retry/Continue Count: {candidateDetail.retry_count ?? 0} / {MAX_RETRIES}</Typography>
                 </Box>
                 <Typography variant="h6" gutterBottom>Interview Questions & Answers</Typography>
@@ -499,7 +500,6 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                             return a.question.id === q.id;
                           }
                           if ('question_id' in a) {
-                            // @ts-ignore
                             return a.question_id === q.id;
                           }
                           return false;

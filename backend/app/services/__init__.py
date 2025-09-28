@@ -124,7 +124,7 @@ class InterviewService:
             sender=message_data['sender'],
             message=message_data['message'],
             message_type=message_data.get('message_type', 'text'),
-            metadata=message_data.get('metadata')
+            message_metadata=message_data.get('message_metadata')
         )
         db.add(message)
         db.commit()

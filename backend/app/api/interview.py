@@ -75,17 +75,17 @@ async def get_continue_status(session_token: str, db: Session = Depends(get_db))
             "retry_count": session.retry_count,
             "has_progress": False
         }
-    
+
     # Get questions and answers
     questions = db.query(InterviewQuestion).filter(InterviewQuestion.session_id == session.id).all()
     answers = db.query(InterviewAnswer).filter(InterviewAnswer.session_id == session.id).all()
-    
+
     total_questions = len(questions)
     total_answers = len(answers)
-    
+
     # Determine if there's progress (questions exist and either in_progress or have answers)
     has_progress = total_questions > 0 and (session.status == "in_progress" or total_answers > 0)
-    
+
     # If all 6 questions answered, interview is complete
     if total_answers >= 6:
         return {
@@ -96,7 +96,7 @@ async def get_continue_status(session_token: str, db: Session = Depends(get_db))
             "total_questions": total_questions,
             "answered_questions": total_answers
         }
-    
+
     # Find first unanswered question
     answered_question_numbers = []
     for answer in answers:
@@ -104,13 +104,13 @@ async def get_continue_status(session_token: str, db: Session = Depends(get_db))
         question = db.query(InterviewQuestion).filter(InterviewQuestion.id == answer.question_id).first()
         if question:
             answered_question_numbers.append(question.question_number)
-    
+
     first_unanswered_index = 0
     for i in range(1, total_questions + 1):
         if i not in answered_question_numbers:
             first_unanswered_index = i - 1
             break
-    
+
     # Build questions list safely
     questions_list = []
     try:
@@ -125,7 +125,7 @@ async def get_continue_status(session_token: str, db: Session = Depends(get_db))
     except Exception as e:
         print(f"Error building questions list: {e}")
         questions_list = []
-    
+
     return {
         "can_continue": True,
         "has_progress": has_progress,
@@ -554,7 +554,10 @@ def add_chat_message(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Add message (implement this method in InterviewService if needed)
-    # message = InterviewService.add_chat_message(db, session.id, message_data.dict())
-
-    return {"message": "Chat message added successfully"}
+    # Add message to DB
+    message_dict = message_data.dict()
+    # Fix key for message_metadata to message_metadata if needed
+    if 'message_metadata' in message_dict:
+        message_dict['metadata'] = message_dict.pop('message_metadata')
+    message = InterviewService.add_chat_message(db, session.id, message_dict)
+    return {"message": "Chat message added successfully", "chat_message_id": message.id}
