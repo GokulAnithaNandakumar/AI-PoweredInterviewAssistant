@@ -112,11 +112,31 @@ const CandidateInterviewPage: React.FC = () => {
   const { sessionToken } = useParams<{ sessionToken: string }>();
   const navigate = useNavigate();
 
+
+  // ...existing code...
+
   // Core state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [continueStatus, setContinueStatus] = useState<ContinueStatus | null>(null);
+
+  // If can_continue is false, show interview completed state (do not navigate away)
+  useEffect(() => {
+    if (continueStatus && continueStatus.can_continue === false) {
+      setInterviewState(prev => ({ ...prev, phase: 'completed' }));
+      setChatMessages(prev => [
+        ...prev,
+        {
+          type: 'completed',
+          content: "Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
+          timestamp: new Date()
+        }
+      ]);
+      localStorage.removeItem(`interview_${sessionToken}`);
+    }
+  }, [continueStatus, sessionToken]);
+
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -456,7 +476,7 @@ const CandidateInterviewPage: React.FC = () => {
                   ...prev,
                   {
                     type: 'completed',
-                    content: "🎉 Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
+                    content: "Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
                     timestamp: new Date()
                   }
                 ]);
@@ -714,7 +734,7 @@ const CandidateInterviewPage: React.FC = () => {
       ...prev,
       {
         type: 'completed',
-        content: "🎉 Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
+        content: "Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
         timestamp: new Date()
       }
     ]);
@@ -833,7 +853,7 @@ const CandidateInterviewPage: React.FC = () => {
                   <strong>Progress:</strong> {continueStatus.answered_questions}/{continueStatus.total_questions} questions answered
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
-                  <strong>Attempts:</strong> {continueStatus.retry_count}/2
+                  <strong>Attempts:</strong> {continueStatus.retry_count}/1
                 </Typography>
               </Box>
 
@@ -936,7 +956,7 @@ const CandidateInterviewPage: React.FC = () => {
                           mb: 1,
                           fontSize: '0.85rem'
                         }}>
-                          Attempt {continueStatus.retry_count}/{continueStatus.max_retries}
+                          Attempt {continueStatus.retry_count}/1
                         </Typography>
                       )}
                       {isTimerActive && (
@@ -1454,7 +1474,7 @@ const CandidateInterviewPage: React.FC = () => {
                     WebkitTextFillColor: 'transparent',
                     mb: 2
                   }}>
-                    🎉 Interview Complete!
+                    Interview Complete!
                   </Typography>
                   <Typography variant="h6" sx={{
                     color: 'text.secondary',

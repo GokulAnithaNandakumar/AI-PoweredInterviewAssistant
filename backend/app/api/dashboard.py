@@ -35,13 +35,18 @@ def get_interviewer_sessions(
     # Get sessions
     sessions = DashboardService.get_interviewer_sessions(db, interviewer.id)
 
+    def get_status(session):
+        if hasattr(session, 'retry_count') and session.retry_count is not None and session.retry_count >= 2:
+            return 'max_retries_reached'
+        return session.status
+
     return [
         CandidateListItem(
             id=session.id,
             session_token=session.session_token,
             candidate_name=session.candidate_name,
             candidate_email=session.candidate_email,
-            status=session.status,
+            status=get_status(session),
             total_score=session.total_score,
             created_at=session.created_at,
             completed_at=session.completed_at
@@ -80,8 +85,17 @@ def get_session_details(
             detail="Session not found"
         )
 
+    # Patch status if max retries reached
+    session_obj = details['session']
+    patched_status = session_obj.status
+    if hasattr(session_obj, 'retry_count') and session_obj.retry_count is not None and session_obj.retry_count >= 2:
+        patched_status = 'max_retries_reached'
+
+    session_dict = dict(session_obj.__dict__)
+    session_dict['status'] = patched_status
+
     return CandidateDetails(
-        **details['session'].__dict__,
+        **session_dict,
         questions=details['questions'],
         answers=details['answers'],
         chat_history=details['chat_history']
@@ -112,20 +126,27 @@ def get_dashboard_stats(
     # Get sessions
     sessions = DashboardService.get_interviewer_sessions(db, interviewer.id)
 
-    # Calculate stats
+    # Calculate stats with patched status
+    def get_status(session):
+        if hasattr(session, 'retry_count') and session.retry_count is not None and session.retry_count >= 2:
+            return 'max_retries_reached'
+        return session.status
+
     total_sessions = len(sessions)
-    completed_sessions = len([s for s in sessions if s.status == "completed"])
-    in_progress_sessions = len([s for s in sessions if s.status == "in_progress"])
+    completed_sessions = len([s for s in sessions if get_status(s) == "completed"])
+    in_progress_sessions = len([s for s in sessions if get_status(s) == "in_progress"])
+    max_retries_sessions = len([s for s in sessions if get_status(s) == "max_retries_reached"])
     average_score = 0.0
 
     if completed_sessions > 0:
-        total_score = sum(s.total_score for s in sessions if s.status == "completed")
+        total_score = sum(s.total_score for s in sessions if get_status(s) == "completed")
         average_score = round(total_score / completed_sessions, 2)
 
     return {
         "total_sessions": total_sessions,
         "completed_sessions": completed_sessions,
         "in_progress_sessions": in_progress_sessions,
+        "max_retries_sessions": max_retries_sessions,
         "average_score": average_score,
         "completion_rate": round((completed_sessions / total_sessions * 100), 1) if total_sessions > 0 else 0
     }

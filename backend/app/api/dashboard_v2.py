@@ -32,6 +32,11 @@ def get_sessions(
             InterviewSession.interviewer_id == current_user.id
         ).offset(skip).limit(limit).all()
 
+        def get_status(session):
+            if hasattr(session, 'retry_count') and session.retry_count is not None and session.retry_count >= 2:
+                return 'max_retries_reached'
+            return session.status
+
         return [{
             "id": session.id,
             "session_token": session.session_token,
@@ -40,7 +45,7 @@ def get_sessions(
             "candidate_phone": session.candidate_phone,
             "resume_url": session.resume_url,
             "resume_filename": session.resume_filename,
-            "status": session.status,
+            "status": get_status(session),
             "current_question_index": session.current_question_index,
             "total_score": session.total_score,
             "created_at": session.created_at.isoformat() if session.created_at else None,
@@ -148,6 +153,11 @@ async def get_session_details(
             for m in getattr(session, 'chat_messages', [])
         ]
 
+    def get_status(session):
+        if hasattr(session, 'retry_count') and session.retry_count is not None and session.retry_count >= 2:
+            return 'max_retries_reached'
+        return session.status
+
     return {
         "id": session.id,
         "session_token": session.session_token,
@@ -156,7 +166,7 @@ async def get_session_details(
         "candidate_phone": session.candidate_phone,
         "resume_url": session.resume_url,
         "resume_filename": session.resume_filename,
-        "status": session.status,
+        "status": get_status(session),
         "current_question_index": session.current_question_index,
         "total_score": session.total_score,
         "created_at": session.created_at.isoformat() if session.created_at else None,

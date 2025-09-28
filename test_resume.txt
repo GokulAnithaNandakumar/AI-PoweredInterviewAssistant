@@ -1,6 +1,5 @@
 JOHN DOE
 Software Engineer
-john.doe@email.com
 +1-234-567-8900
 
 EXPERIENCE

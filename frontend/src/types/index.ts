@@ -31,7 +31,7 @@ export interface InterviewSession {
   candidate_email?: string;
   candidate_phone?: string;
   resume_url?: string;
-  status: 'created' | 'in_progress' | 'completed' | 'abandoned';
+  status: 'created' | 'in_progress' | 'completed' | 'abandoned' | 'max_retries_reached';
   current_question_index: number;
   total_score: number;
   ai_summary?: string;
