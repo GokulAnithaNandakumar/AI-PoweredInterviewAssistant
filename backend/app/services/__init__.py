@@ -158,7 +158,7 @@ class InterviewService:
         if not scores:
             return 0.0
 
-        avg_score = sum(scores) / len(scores)
+        avg_score = sum(scores) / 6
         return round(avg_score, 2)
 
     @staticmethod

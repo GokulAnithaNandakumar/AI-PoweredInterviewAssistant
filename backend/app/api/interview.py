@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -562,3 +563,62 @@ def add_chat_message(
         message_dict['metadata'] = message_dict.pop('message_metadata')
     message = InterviewService.add_chat_message(db, session.id, message_dict)
     return {"message": "Chat message added successfully", "chat_message_id": message.id}
+
+
+
+# Force-complete interview: calculate score and summary even if not all questions are answered
+@router.post("/{session_token}/complete")
+def force_complete_interview(
+    session_token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Force-complete the interview, calculate total score and AI summary, and mark as completed.
+    Used when max retry attempts are reached or interview is abandoned.
+    """
+    session = InterviewService.get_session_by_token(db, session_token)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # If already completed, just return summary/score
+    if session.status == "completed":
+        total_score = session.total_score or 0
+        ai_summary = session.ai_summary
+        try:
+            summary = json.loads(ai_summary) if ai_summary else {}
+        except Exception:
+            summary = {}
+        return {
+            "message": "Interview already completed.",
+            "total_score": total_score,
+            "summary": summary
+        }
+
+    # Calculate total score from all answers
+    total_score = InterviewService.calculate_total_score(db, session.id)
+
+    # Generate final summary
+    try:
+        summary = InterviewService.generate_interview_summary(db, session.id)
+        # Mark session as completed
+        InterviewService.update_session_status(
+            db, session.id, "completed",
+            completed_at=datetime.utcnow(),
+            total_score=total_score,
+            ai_summary=json.dumps(summary),
+            student_ai_summary=json.dumps({
+                "performance_analysis": f"Student completed {summary.get('answered_questions', 0)}/6 questions with an average score of {total_score:.1f}/10",
+                "total_answers": summary.get('answered_questions', 0),
+                "average_score": total_score,
+                "recommendation": summary.get('recommendation', 'Unknown'),
+                "verdict_reason": summary.get('verdict_reason', 'No detailed analysis available')
+            })
+        )
+        return {
+            "message": "Interview forcibly completed.",
+            "total_score": total_score,
+            "summary": summary
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to complete interview: {str(e)}")

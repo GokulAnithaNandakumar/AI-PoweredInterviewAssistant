@@ -108,6 +108,32 @@ interface ContinueResponse {
 const TOTAL_QUESTIONS = 6; // Interview always has 6 questions
 
 const CandidateInterviewPage: React.FC = () => {
+
+  // --- Continue Interview Button Timeout ---
+  const [showContinueDialog, setShowContinueDialog] = useState(false);
+  const [canClickContinue, setCanClickContinue] = useState(false);
+  const [continueCountdown, setContinueCountdown] = useState(10);
+
+  useEffect(() => {
+    if (showContinueDialog) {
+      setCanClickContinue(false);
+      setContinueCountdown(10);
+      const interval = setInterval(() => {
+        setContinueCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setCanClickContinue(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCanClickContinue(false);
+      setContinueCountdown(10);
+    }
+  }, [showContinueDialog]);
   const { sessionToken } = useParams<{ sessionToken: string }>();
   const navigate = useNavigate();
 
@@ -122,21 +148,71 @@ const CandidateInterviewPage: React.FC = () => {
 
   // If can_continue is false, show interview completed state (do not navigate away)
   useEffect(() => {
-    if (continueStatus && continueStatus.can_continue === false) {
-      setInterviewState(prev => ({ ...prev, phase: 'completed' }));
-      setChatMessages(prev => [
-        ...prev,
-        {
-          type: 'completed',
-          content: "Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
-          timestamp: new Date()
+    const handleMaxRetry = async () => {
+      // Call backend to force score/summary generation
+      try {
+        const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setInterviewState(prev => ({
+            ...prev,
+            phase: 'completed',
+            totalScore: data.total_score,
+            summary: data.summary
+          }));
+          setChatMessages(prev => [
+            ...prev,
+            {
+              type: 'completed',
+              content: "Interview completed! You have reached the maximum number of retry attempts. Your responses have been recorded and the interviewer will review them shortly.",
+              timestamp: new Date()
+            }
+          ]);
+        } else {
+          setInterviewState(prev => ({ ...prev, phase: 'completed' }));
+          setChatMessages(prev => [
+            ...prev,
+            {
+              type: 'completed',
+              content: "Interview completed! You have reached the maximum number of retry attempts. Your responses have been recorded and the interviewer will review them shortly.",
+              timestamp: new Date()
+            }
+          ]);
         }
-      ]);
+      } catch {
+        setInterviewState(prev => ({ ...prev, phase: 'completed' }));
+        setChatMessages(prev => [
+          ...prev,
+          {
+            type: 'completed',
+            content: "Interview completed! You have reached the maximum number of retry attempts. Your responses have been recorded and the interviewer will review them shortly.",
+            timestamp: new Date()
+          }
+        ]);
+      }
       localStorage.removeItem(`interview_${sessionToken}`);
+    };
+    if (continueStatus && continueStatus.can_continue === false) {
+      if (continueStatus.reason === 'Maximum retry attempts reached') {
+        handleMaxRetry();
+      } else {
+        setInterviewState(prev => ({ ...prev, phase: 'completed' }));
+        setChatMessages(prev => [
+          ...prev,
+          {
+            type: 'completed',
+            content: "Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
+            timestamp: new Date()
+          }
+        ]);
+        localStorage.removeItem(`interview_${sessionToken}`);
+      }
     }
   }, [continueStatus, sessionToken]);
 
-  const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Interview state management
@@ -940,7 +1016,7 @@ const CandidateInterviewPage: React.FC = () => {
                   <strong>Progress:</strong> {continueStatus.answered_questions}/{continueStatus.total_questions} questions answered
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
-                  <strong>Attempts:</strong> {continueStatus.retry_count}
+                  <strong>Final Attempt Do Not Reload</strong>
                 </Typography>
               </Box>
 
@@ -950,32 +1026,11 @@ const CandidateInterviewPage: React.FC = () => {
                 justifyContent: 'center',
                 mt: 3
               }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                    setShowContinueDialog(false);
-                    // Reset to fresh state
-                    setInterviewState({
-                      phase: 'upload',
-                      currentQuestionIndex: 0,
-                      answers: [],
-                      timeRemaining: 0
-                    });
-                  }}
-                  sx={{
-                    borderColor: '#e2e8f0',
-                    color: '#4a5568',
-                    '&:hover': {
-                      borderColor: '#cbd5e0',
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                    }
-                  }}
-                >
-                  Start Fresh
-                </Button>
+
                 <Button
                   variant="contained"
                   onClick={() => handleContinueInterview(true)}
+                  disabled={!canClickContinue}
                   sx={{
                     backgroundColor: '#667eea',
                     '&:hover': {
@@ -983,7 +1038,7 @@ const CandidateInterviewPage: React.FC = () => {
                     }
                   }}
                 >
-                  Continue Interview
+                  {canClickContinue ? 'Continue Interview' : `Please wait... (${continueCountdown}s)`}
                 </Button>
               </Box>
             </CardContent>
@@ -1043,7 +1098,7 @@ const CandidateInterviewPage: React.FC = () => {
                           mb: 1,
                           fontSize: '0.85rem'
                         }}>
-                          Attempt {continueStatus.retry_count}/1
+                          Final Attempt do not Reload
                         </Typography>
                       )}
                       {isTimerActive && (
@@ -1234,7 +1289,8 @@ const CandidateInterviewPage: React.FC = () => {
                     onClick={submitMissingInfo}
                     fullWidth
                     size="large"
-                    disabled={missingFields.some(field => !candidateInfo[field as keyof CandidateInfo])}
+                    disabled={missingFields.some(field => !candidateInfo[field as keyof CandidateInfo]) || startingInterview}
+                    startIcon={startingInterview ? <CircularProgress size={20} color="inherit" /> : ''}
                     sx={{
                       mt: 4,
                       py: 2,
@@ -1254,7 +1310,7 @@ const CandidateInterviewPage: React.FC = () => {
                       }
                     }}
                   >
-                    🚀 Continue to Interview
+                    {startingInterview ? 'Starting Interview...' : 'Continue to Interview'}
                   </Button>
                 </Box>
               </CardContent>
