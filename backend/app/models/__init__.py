@@ -34,8 +34,12 @@ class InterviewSession(Base):
     resume_url = Column(String, nullable=True)  # Cloudinary URL for the resume
     resume_content = Column(Text, nullable=True)
 
+
     # Store all resume parsing results as JSON
     resume_summary = Column(JSON, nullable=True)
+
+    # Role for which the interview is being conducted (e.g., 'Full Stack Developer', 'Data Scientist')
+    role = Column(String(128), nullable=True)
 
 
     # Interview Status

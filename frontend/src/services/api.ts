@@ -1,3 +1,15 @@
+// Interviewee chat API
+export const interviewAPI = {
+  addChatMessage: async (sessionToken: string, message: {
+    sender: 'user' | 'assistant',
+    message: string,
+    message_type?: string,
+    message_metadata?: Record<string, unknown>
+  }) => {
+    const response = await api.post(`/interview/${sessionToken}/chat`, message);
+    return response.data;
+  }
+};
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -60,7 +72,7 @@ export const authAPI = {
     return response.data;
   },
 
-  createSession: async (sessionData: { candidate_email: string; candidate_name?: string }) => {
+  createSession: async (sessionData: { candidate_email: string; candidate_name?: string; role: string }) => {
     const response = await api.post('/auth/create-session', sessionData);
     return response.data;
   }

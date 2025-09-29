@@ -19,7 +19,8 @@ def migrate_database():
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS resume_summary JSON;",
         "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS student_ai_summary TEXT;",
         "ALTER TABLE interview_sessions ALTER COLUMN ai_summary TYPE TEXT USING ai_summary::text;",
-        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;"
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;",
+        "ALTER TABLE interview_sessions ADD COLUMN IF NOT EXISTS role VARCHAR(128);"
     ]
 
     try:

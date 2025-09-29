@@ -135,9 +135,14 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
   // Create session dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [createSessionData, setCreateSessionData] = useState({
+  const [createSessionData, setCreateSessionData] = useState<{
+    candidate_email: string;
+    candidate_name: string;
+    role: string;
+  }>({
     candidate_email: '',
-    candidate_name: ''
+    candidate_name: '',
+    role: ''
   });
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -180,12 +185,13 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     try {
       await authAPI.createSession({
         candidate_email: createSessionData.candidate_email,
-        candidate_name: createSessionData.candidate_name || undefined
+        candidate_name: createSessionData.candidate_name || undefined,
+        role: createSessionData.role
       });
 
       setSuccess(`Interview created successfully! Link sent to ${createSessionData.candidate_email}`);
       setCreateDialogOpen(false);
-      setCreateSessionData({ candidate_email: '', candidate_name: '' });
+  setCreateSessionData({ candidate_email: '', candidate_name: '', role: '' });
 
       // Refresh dashboard data
       await loadDashboardData();
@@ -605,6 +611,17 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
               variant="outlined"
               value={createSessionData.candidate_name}
               onChange={(e) => setCreateSessionData({ ...createSessionData, candidate_name: e.target.value })}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              margin="dense"
+              label="Role"
+              type="text"
+              fullWidth
+              variant="outlined"
+              required
+              value={createSessionData.role}
+              onChange={(e) => setCreateSessionData({ ...createSessionData, role: e.target.value })}
             />
           </DialogContent>
           <DialogActions>

@@ -99,18 +99,17 @@ class QuestionGeneratorAgent:
     def __init__(self):
         pass  # No need to initialize model, we'll use REST API
 
-    def generate_question(self, difficulty: str, question_number: int, resume_data: Dict[str, Any], previous_questions: List[str] = []) -> Dict[str, Any]:
-        """Generate a question based on difficulty level and resume context."""
 
+    def generate_question(self, difficulty: str, question_number: int, resume_data: Dict[str, Any], previous_questions: List[str] = [], role: str = None) -> Dict[str, Any]:
+        """Generate a question based on difficulty level, resume context, and role."""
         difficulty_config = {
             "easy": {"time_limit": 20, "complexity": "Basic concepts and fundamental knowledge"},
             "medium": {"time_limit": 60, "complexity": "Intermediate problem-solving and practical application"},
             "hard": {"time_limit": 120, "complexity": "Advanced concepts, system design, and complex problem-solving"}
         }
-
         config = difficulty_config[difficulty]
-
-        # Build context from resume
+        # Use role from argument, else from resume_data, else empty string
+        role_value = role or resume_data.get('role', '')
         resume_context = f"""
         Candidate Resume Summary:
         - Name: {resume_data.get('name', 'Unknown')}
@@ -119,28 +118,27 @@ class QuestionGeneratorAgent:
         - Experience: {resume_data.get('experience', 'Not specified')}
         - Skills: {resume_data.get('skills', 'Not specified')}
         - Projects: {resume_data.get('projects', 'Not specified')}
+        - Role: {role_value}
         """
-
         previous_context = ""
         if previous_questions:
             previous_context = f"\nPrevious Questions Asked:\n" + "\n".join(f"- {q}" for q in previous_questions)
-
         prompt = f"""
-        You are an expert technical interviewer for a Full Stack Developer position (React/Node.js).
+        You are an expert technical interviewer for a {role_value} position.
 
         Generate Question #{question_number} with {difficulty.upper()} difficulty level.
 
         Requirements:
         - Difficulty: {difficulty.upper()} - {config['complexity']}
         - Time Limit: {config['time_limit']} seconds
-        - Must be relevant to Full Stack Development (React/Node.js)
+        - Must be relevant to the {role_value} role
         - Consider the candidate's background from their resume
         - Avoid repeating previous questions
 
         {resume_context}
         {previous_context}
 
-        Generate a technical question that tests the candidate's knowledge and is appropriate for their background.
+        Generate a technical question that tests the candidate's knowledge and is appropriate for their background and the {role_value} role.
         The question should be clear, specific, and answerable within the time limit.
 
         Return ONLY a JSON object with this exact structure:
@@ -153,6 +151,30 @@ class QuestionGeneratorAgent:
             "evaluation_criteria": ["criterion1", "criterion2", "criterion3"]
         }}
         """
+        try:
+            response_text = call_gemini_api(prompt)
+            # Clean and parse the JSON response
+            cleaned_response = clean_json_response(response_text)
+            result = json.loads(cleaned_response)
+            result["question_number"] = question_number
+            return result
+        except Exception as e:
+            print(f"AI question generation failed: {e}")
+            # Fallback question if AI fails
+            fallback_questions = {
+                "easy": "What is the difference between React functional and class components?",
+                "medium": "How would you implement state management in a React application?",
+                "hard": "Design a scalable architecture for a real-time chat application using React and Node.js."
+            }
+            return {
+                "question": fallback_questions[difficulty],
+                "difficulty": difficulty,
+                "time_limit": config["time_limit"],
+                "category": "Fullstack",
+                "expected_answer_length": "detailed",
+                "evaluation_criteria": ["Technical accuracy", "Clear explanation", "Practical understanding"],
+                "question_number": question_number
+            }
 
         try:
             response_text = call_gemini_api(prompt)
@@ -184,10 +206,11 @@ class AnswerEvaluatorAgent:
         pass  # No need to initialize model, we'll use REST API
 
     def evaluate_answer(self, question: Dict[str, Any], answer: str, resume_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Evaluate the candidate's answer using AI."""
+        """Evaluate the candidate's answer using AI, using the session's role."""
 
+        role = resume_data.get('role', '')
         prompt = f"""
-        You are an expert technical interviewer evaluating a Full Stack Developer candidate's answer.
+        You are an expert technical interviewer evaluating a {role} candidate's answer.
 
         Question Details:
         - Question: {question['question']}
@@ -201,6 +224,7 @@ class AnswerEvaluatorAgent:
         Candidate Background:
         - Experience: {resume_data.get('experience', 'Not specified')}
         - Skills: {resume_data.get('skills', 'Not specified')}
+        - Role: {role}
 
         Evaluate this answer and provide:
         1. A score from 0-10 (10 being perfect)
@@ -356,13 +380,15 @@ class InterviewSummaryAgent:
 
         overall_score = round(total_score / total_questions, 1) if total_questions > 0 else 0
 
+        role = candidate_data.get('role', '')
         prompt = f"""
-        Generate a comprehensive interview summary for a Full Stack Developer candidate.
+        Generate a comprehensive interview summary for a {role} candidate.
 
         Candidate Information:
         - Name: {candidate_data.get('name', 'Unknown')}
         - Experience: {candidate_data.get('experience', 'Not specified')}
         - Skills: {candidate_data.get('skills', [])}
+        - Role: {role}
 
         Interview Performance:
         {qa_summary}

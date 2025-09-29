@@ -30,6 +30,7 @@ class TokenResponse(BaseModel):
 class CreateSessionRequest(BaseModel):
     candidate_email: EmailStr
     candidate_name: Optional[str] = None
+    role: str
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Get current authenticated user"""
@@ -149,6 +150,7 @@ async def create_interview_session(
         session_token=session_token,
         candidate_email=session_data.candidate_email,
         candidate_name=session_data.candidate_name,
+        role=session_data.role,
         status="created",
         current_question_index=0,
         total_score=0

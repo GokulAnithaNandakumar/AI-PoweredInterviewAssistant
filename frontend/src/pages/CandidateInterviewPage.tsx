@@ -360,7 +360,7 @@ const CandidateInterviewPage: React.FC = () => {
         // Mark initial load as complete
         setIsInitialLoad(false);
       } else {
-        setError('Session not found or expired');
+        setError('Session not found or interview complete please close this window');
       }
     } catch (error) {
       console.error('Error loading session info:', error);
@@ -826,13 +826,7 @@ const CandidateInterviewPage: React.FC = () => {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="error">{error}</Alert>
-        <Button
-          variant="contained"
-          onClick={() => navigate('/')}
-          sx={{ mt: 2 }}
-        >
-          Go Home
-        </Button>
+
       </Container>
     );
   }
@@ -990,7 +984,7 @@ const CandidateInterviewPage: React.FC = () => {
                     fontWeight: 500,
                     ml: 7
                   }}>
-                    {sessionInfo?.position_title || 'Full Stack Developer Position'}
+                    {sessionInfo?.position_title || ''}
                   </Typography>
                 </Box>
                 {interviewState.phase === 'interview' && (

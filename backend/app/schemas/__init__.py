@@ -55,15 +55,17 @@ class TokenData(BaseModel):
 
 # Interview Session Schemas
 class InterviewSessionCreate(BaseModel):
-    pass  # Will be created by interviewer
+    role: str  # Role for which the interview is being conducted
 
 class InterviewSessionResponse(BaseModel):
     id: int
     session_token: str
+
     candidate_name: Optional[str]
     candidate_email: Optional[str]
     candidate_phone: Optional[str]
     resume_url: Optional[str]
+    role: Optional[str]
     status: SessionStatus
     current_question_index: int
     total_score: float

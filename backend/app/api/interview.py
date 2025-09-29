@@ -334,7 +334,8 @@ def start_interview(
         'education': resume_summary.get('education'),
         'current_position': resume_summary.get('current_position'),
         'projects': resume_summary.get('projects'),
-        'resume_content': session.resume_content
+        'resume_content': session.resume_content,
+        'role': getattr(session, 'role', None)
     }
 
     # Generate all 6 questions (2 Easy, 2 Medium, 2 Hard)
@@ -350,12 +351,11 @@ def start_interview(
                 difficulty=difficulty,
                 question_number=i,
                 resume_data=resume_data,
-                previous_questions=previous_questions
+                previous_questions=previous_questions,
+                role=resume_data['role']
             )
-
             questions_data.append(question_data)
             previous_questions.append(question_data['question'])
-
         except Exception as e:
             # Fallback questions if AI fails
             fallback_questions = {
@@ -363,7 +363,6 @@ def start_interview(
                 'medium': "How would you implement state management in a React application with multiple components?",
                 'hard': "Design the architecture for a scalable real-time chat application using React and Node.js."
             }
-
             questions_data.append({
                 'question': fallback_questions[difficulty],
                 'difficulty': difficulty,
@@ -434,7 +433,8 @@ async def submit_answer(
         'experience': resume_summary.get('experience'),
         'skills': resume_summary.get('skills', []),
         'education': resume_summary.get('education'),
-        'current_position': resume_summary.get('current_position')
+        'current_position': resume_summary.get('current_position'),
+        'role': getattr(session, 'role', None)
     }
 
     # Evaluate answer using AI
@@ -450,7 +450,8 @@ async def submit_answer(
         evaluation = evaluator_agent.evaluate_answer(
             question=question_context,
             answer=answer_data.answer or "",
-            resume_data=resume_data
+            resume_data=resume_data,
+            role=resume_data['role']
         )
     except Exception as e:
         # Fallback evaluation if AI fails
