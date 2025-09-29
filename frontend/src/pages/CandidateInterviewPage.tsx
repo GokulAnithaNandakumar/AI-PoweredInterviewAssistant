@@ -141,11 +141,22 @@ const CandidateInterviewPage: React.FC = () => {
 
   // Interview state management
   const [interviewState, setInterviewState] = useState<InterviewState>(() => {
+    // For debugging - clear localStorage to start fresh (uncomment if needed)
+    localStorage.removeItem(`interview_${sessionToken}`);
+
     // Load from localStorage if available
     const saved = localStorage.getItem(`interview_${sessionToken}`);
     if (saved) {
-      return JSON.parse(saved);
+      try {
+        const parsedState = JSON.parse(saved);
+        console.log('Loaded state from localStorage:', parsedState);
+        return parsedState;
+      } catch (error) {
+        console.log('Failed to parse saved state, starting fresh', error);
+        localStorage.removeItem(`interview_${sessionToken}`);
+      }
     }
+    console.log('Starting with fresh state - upload phase');
     return {
       phase: 'upload',
       currentQuestionIndex: 0,
@@ -200,10 +211,12 @@ const CandidateInterviewPage: React.FC = () => {
       });
 
       if (response.ok) {
+
         const data: ContinueResponse = await response.json();
+        // --- DEBUG: Resume logic ---
+        console.log('[RESUME] ContinueResponse:', data);
 
         setQuestions(data.questions);
-
         // Pre-fill answers
         const answersArray = new Array(data.questions.length).fill('');
         data.existing_answers.forEach(answer => {
@@ -213,15 +226,33 @@ const CandidateInterviewPage: React.FC = () => {
           }
         });
 
+        // --- DEBUG: Answers array after prefill ---
+        console.log('[RESUME] Prefilled answersArray:', answersArray);
+
+        // Find the first unanswered question index
+        const firstUnansweredIdx = answersArray.findIndex(a => !a);
+        const resumeIdx = firstUnansweredIdx === -1 ? answersArray.length : firstUnansweredIdx;
+
+        // --- DEBUG: Resume index calculation ---
+        console.log('[RESUME] First unanswered index:', firstUnansweredIdx, 'Resume index:', resumeIdx);
+
         // Update interview state
-        console.log('[DEBUG] Continue: next_question_index', data.next_question_index, 'questions:', data.questions);
         setInterviewState(prev => ({
           ...prev,
-          phase: data.next_question_index >= TOTAL_QUESTIONS ? 'completed' : 'interview',
-          currentQuestionIndex: data.next_question_index >= TOTAL_QUESTIONS ? TOTAL_QUESTIONS : data.next_question_index,
+          phase: (answersArray.filter(a => a).length >= TOTAL_QUESTIONS) ? 'completed' : 'interview',
+          currentQuestionIndex: resumeIdx,
           answers: answersArray,
-          timeRemaining: 0 // Always reset timer to 0 so timer auto-starts for the correct question
+          timeRemaining: 0
         }));
+
+        // --- DEBUG: Interview state after resume ---
+        setTimeout(() => {
+          console.log('[RESUME] InterviewState after set:', {
+            phase: (answersArray.filter(a => a).length >= TOTAL_QUESTIONS) ? 'completed' : 'interview',
+            currentQuestionIndex: resumeIdx,
+            answers: answersArray
+          });
+        }, 0);
 
         // Pre-fill candidate info if available
         if (data.candidate_info.name || data.candidate_info.email || data.candidate_info.phone) {
@@ -232,20 +263,21 @@ const CandidateInterviewPage: React.FC = () => {
           });
         }
 
-        // Rebuild chat: system message, then only the current question/timer for resume
-
+        // Why is chat rebuilt here?
+        // The chat UI must show the correct current question and timer for the resumed state.
+        // If you resume at question 3, the chat should show only the system message and the current question/timer, not all previous chat history.
+        // This keeps the UI focused and avoids confusion for the candidate.
         const chat: ChatMessage[] = [];
         chat.push({
           type: 'system',
-          content: `${data.message}. Resuming from question ${data.next_question_index + 1}.`,
+          content: `${data.message}. Resuming from question ${resumeIdx + 1}.`,
           timestamp: new Date()
         });
-        // Defensive: only show question if index is in range
-        if (data.next_question_index < data.questions.length) {
-          const currentQuestion = data.questions[data.next_question_index];
+        if (resumeIdx < data.questions.length) {
+          const currentQuestion = data.questions[resumeIdx];
           chat.push({
             type: 'question',
-            content: `**Question ${data.next_question_index + 1}** (${currentQuestion.difficulty.toUpperCase()} - ${currentQuestion.time_limit}s)\n\n${currentQuestion.question}`,
+            content: `**Question ${resumeIdx + 1}** (${currentQuestion.difficulty.toUpperCase()} - ${currentQuestion.time_limit}s)\n\n${currentQuestion.question}`,
             timestamp: new Date(),
             questionData: currentQuestion,
             isCurrentQuestion: true
@@ -257,9 +289,7 @@ const CandidateInterviewPage: React.FC = () => {
           });
         }
         setChatMessages(chat);
-
-        setCurrentAnswer(answersArray[data.next_question_index] || '');
-
+        setCurrentAnswer(answersArray[resumeIdx] || '');
         if (showDialog) {
           setShowContinueDialog(false);
         }
@@ -311,9 +341,18 @@ const CandidateInterviewPage: React.FC = () => {
 
         // Add welcome message only if no progress
         if (chatMessages.length === 0) {
+          console.log('Adding welcome message, current phase:', interviewState.phase);
+          console.log('Missing fields:', missingFields);
+
+          // Ensure we're in upload phase initially if no file uploaded yet
+          if (!selectedFile && interviewState.phase === 'missing-info') {
+            console.log('Resetting phase to upload');
+            setInterviewState(prev => ({ ...prev, phase: 'upload' }));
+          }
+
           setChatMessages([{
             type: 'system',
-            content: `Welcome to your interview for ${data.position_title}! Let's start by uploading your resume.`,
+            content: `Welcome to your interview for ${data.position_title}! I'll guide you through this process step by step.\n\nFirst, please upload your resume (PDF or DOCX format). Click on "Choose File" below to get started.`,
             timestamp: new Date()
           }]);
         }
@@ -402,6 +441,17 @@ const CandidateInterviewPage: React.FC = () => {
     if (!selectedFile || !sessionToken) return;
 
     setUploadLoading(true);
+
+    // Add user message about file upload
+    setChatMessages(prev => [
+      ...prev,
+      {
+        type: 'user',
+        content: `📎 Uploaded resume: ${selectedFile.name}`,
+        timestamp: new Date()
+      }
+    ]);
+
     try {
       const formData = new FormData();
       formData.append('resume', selectedFile);
@@ -416,11 +466,15 @@ const CandidateInterviewPage: React.FC = () => {
         setCandidateInfo(prev => ({ ...prev, ...data.extracted_data }));
         setMissingFields(data.missing_fields || []);
 
+        // Add AI response about successful processing
         setChatMessages(prev => [
           ...prev,
           {
             type: 'system',
-            content: `✅ Resume uploaded successfully! I extracted your information: ${JSON.stringify(data.extracted_data, null, 2)}`,
+            content: `✅ Great! I've successfully processed your resume and extracted the following information:\n\n${Object.entries(data.extracted_data)
+              .filter(([, value]) => value)
+              .map(([key, value]) => `• ${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
+              .join('\n')}`,
             timestamp: new Date()
           }
         ]);
@@ -431,18 +485,42 @@ const CandidateInterviewPage: React.FC = () => {
             ...prev,
             {
               type: 'system',
-              content: `I need some additional information from you: ${data.missing_fields.join(', ')}. Please provide these details.`,
+              content: `I notice some required information is missing from your resume. Could you please provide the following details:\n\n${data.missing_fields.map((field: string) => `• ${field.charAt(0).toUpperCase() + field.slice(1)}`).join('\n')}\n\nPlease fill in these details below so we can proceed with your interview.`,
               timestamp: new Date()
             }
           ]);
         } else {
+          setChatMessages(prev => [
+            ...prev,
+            {
+              type: 'system',
+              content: "Perfect! I have all the information I need. Let me now generate your technical interview questions. This may take a moment...",
+              timestamp: new Date()
+            }
+          ]);
           startInterview();
         }
       } else {
         const errorData = await response.json();
+        setChatMessages(prev => [
+          ...prev,
+          {
+            type: 'system',
+            content: `❌ Sorry, there was an issue processing your resume: ${errorData.detail || 'Upload failed'}. Please try uploading your resume again.`,
+            timestamp: new Date()
+          }
+        ]);
         setError(errorData.detail || 'Failed to upload resume');
       }
     } catch {
+      setChatMessages(prev => [
+        ...prev,
+        {
+          type: 'system',
+          content: `❌ Sorry, there was a technical issue uploading your resume. Please check your internet connection and try again.`,
+          timestamp: new Date()
+        }
+      ]);
       setError('Failed to upload resume');
     } finally {
       setUploadLoading(false);
@@ -458,9 +536,27 @@ const CandidateInterviewPage: React.FC = () => {
       const requiredFields = ['name', 'email', 'phone'];
       const missing = requiredFields.filter(f => !candidateInfo[f as keyof CandidateInfo]);
       if (missing.length > 0) {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            type: 'system',
+            content: `❌ Please fill in all required fields: ${missing.join(', ')}`,
+            timestamp: new Date()
+          }
+        ]);
         setError('Please fill all required fields: ' + missing.join(', '));
         return;
       }
+
+      // Add user message about submitting info
+      setChatMessages(prev => [
+        ...prev,
+        {
+          type: 'user',
+          content: `✅ Provided additional information:\n• Name: ${candidateInfo.name}\n• Email: ${candidateInfo.email}\n• Phone: ${candidateInfo.phone}`,
+          timestamp: new Date()
+        }
+      ]);
 
       // Map frontend fields to backend keys
       const backendCandidateInfo = {
@@ -482,16 +578,32 @@ const CandidateInterviewPage: React.FC = () => {
           ...prev,
           {
             type: 'system',
-            content: "✅ Information updated! Now let's begin the technical interview.",
+            content: "Perfect! Now I have all the information I need. Let me generate your technical interview questions. This may take a moment...",
             timestamp: new Date()
           }
         ]);
         setMissingFields([]); // Clear missing fields so interview can start
         startInterview();
       } else {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            type: 'system',
+            content: "❌ There was an issue updating your information. Please try again.",
+            timestamp: new Date()
+          }
+        ]);
         setError('Failed to update information');
       }
     } catch {
+      setChatMessages(prev => [
+        ...prev,
+        {
+          type: 'system',
+          content: "❌ There was a technical issue updating your information. Please check your connection and try again.",
+          timestamp: new Date()
+        }
+      ]);
       setError('Failed to update information');
     }
   };
@@ -526,7 +638,7 @@ const CandidateInterviewPage: React.FC = () => {
           ...prev,
           {
             type: 'system',
-            content: "🚀 Starting your technical interview! You'll have 6 questions total: 2 Easy (20s each), 2 Medium (60s each), and 2 Hard (120s each).",
+            content: "🚀 Excellent! I've generated your personalized technical interview questions. You'll have 6 questions total:\n\n• 2 Easy questions (20 seconds each)\n• 2 Medium questions (60 seconds each) \n• 2 Hard questions (120 seconds each)\n\nLet's begin with your first question!",
             timestamp: new Date()
           }
         ]);
@@ -549,7 +661,7 @@ const CandidateInterviewPage: React.FC = () => {
       console.error('[ERROR] startInterview: exception', err);
       let errMsg = '';
       if (err && typeof err === 'object' && 'message' in err) {
-        errMsg = (err as any).message;
+        errMsg = (err as Error).message;
       } else {
         errMsg = String(err);
       }
@@ -794,7 +906,7 @@ const CandidateInterviewPage: React.FC = () => {
                   <strong>Progress:</strong> {continueStatus.answered_questions}/{continueStatus.total_questions} questions answered
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
-                  <strong>Attempts:</strong> {continueStatus.retry_count} <strong>Do not Reload</strong>
+                  <strong>Attempts:</strong> {continueStatus.retry_count}
                 </Typography>
               </Box>
 
@@ -1115,7 +1227,7 @@ const CandidateInterviewPage: React.FC = () => {
             </Card>
           )}
 
-          {/* Modern Upload Phase */}
+          {/* Modern Chat Interface - Upload Phase */}
           {interviewState.phase === 'upload' && (
             <Card elevation={0} sx={{
               borderRadius: 4,
@@ -1123,103 +1235,158 @@ const CandidateInterviewPage: React.FC = () => {
               backdropFilter: 'blur(20px)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-              textAlign: 'center'
+              overflow: 'hidden'
             }}>
-              <CardContent sx={{ p: 6 }}>
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="h4" sx={{
-                    fontWeight: 700,
+              <CardContent sx={{ p: 0 }}>
+                {/* Chat Messages */}
+                <Box sx={{
+                  height: '50vh',
+                  overflow: 'auto',
+                  p: 3,
+                  background: 'linear-gradient(180deg, rgba(102, 126, 234, 0.02) 0%, rgba(118, 75, 162, 0.02) 100%)'
+                }}>
+                  {chatMessages.map((message, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        mb: 3,
+                        display: 'flex',
+                        justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
+                        animation: 'fadeInUp 0.5s ease-out'
+                      }}
+                    >
+                      <Card
+                        elevation={0}
+                        sx={{
+                          maxWidth: '85%',
+                          borderRadius: message.type === 'user' ? '20px 20px 5px 20px' : '20px 20px 20px 5px',
+                          background: message.type === 'user' ?
+                            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                            message.type === 'question' ?
+                            'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
+                            message.type === 'completed' ?
+                            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)' :
+                            'rgba(255, 255, 255, 0.9)',
+                          color: message.type === 'user' ? 'white' : '#2d3748',
+                          boxShadow: message.type === 'user' ?
+                            '0 4px 20px rgba(102, 126, 234, 0.3)' :
+                            '0 4px 20px rgba(0, 0, 0, 0.08)',
+                          border: message.type !== 'user' ? '1px solid rgba(255, 255, 255, 0.5)' : 'none'
+                        }}
+                      >
+                        <CardContent sx={{ py: 2, px: 3, '&:last-child': { pb: 2 } }}>
+                          <Typography variant="body1" sx={{
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.6,
+                            fontWeight: message.type === 'user' ? 500 : 400
+                          }}>
+                            {message.content}
+                          </Typography>
+                          <Typography variant="caption" display="block" sx={{
+                            mt: 1,
+                            opacity: 0.8,
+                            fontSize: '0.75rem'
+                          }}>
+                            {message.timestamp.toLocaleTimeString()}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                  ))}
+                  <div ref={chatEndRef} />
+                </Box>
+
+                {/* Resume Upload Interface within Chat */}
+                <Box sx={{
+                  p: 4,
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  borderTop: '1px solid rgba(102, 126, 234, 0.1)'
+                }}>
+                  <Typography variant="h6" sx={{
+                    mb: 3,
+                    fontWeight: 600,
                     color: '#2d3748',
-                    mb: 2
+                    textAlign: 'center'
                   }}>
                     📄 Upload Your Resume
                   </Typography>
-                  <Typography variant="body1" sx={{
-                    color: 'text.secondary',
-                    fontSize: '1.1rem',
-                    maxWidth: '500px',
-                    mx: 'auto',
-                    lineHeight: 1.6
-                  }}>
-                    Upload your resume to get started with your technical interview. We support PDF and DOCX formats.
-                  </Typography>
-                </Box>
 
-                <Box sx={{ maxWidth: '400px', mx: 'auto' }}>
-                  <input
-                    type="file"
-                    accept=".pdf,.docx"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    style={{ display: 'none' }}
-                    id="resume-upload"
-                  />
-                  <label htmlFor="resume-upload">
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      size="large"
-                      startIcon={<UploadIcon />}
-                      fullWidth
-                      sx={{
+                  <Box sx={{ maxWidth: '400px', mx: 'auto' }}>
+                    <input
+                      type="file"
+                      accept=".pdf,.docx"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      style={{ display: 'none' }}
+                      id="resume-upload"
+                    />
+                    <label htmlFor="resume-upload">
+                      <Button
+                        variant="outlined"
+                        component="span"
+                        size="large"
+                        startIcon={<UploadIcon />}
+                        fullWidth
+                        sx={{
+                          mb: 2,
+                          py: 2,
+                          borderRadius: 3,
+                          borderColor: '#667eea',
+                          color: '#667eea',
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          fontSize: '1.1rem',
+                          borderWidth: '2px',
+                          '&:hover': {
+                            borderColor: '#5a67d8',
+                            backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                            borderWidth: '2px'
+                          }
+                        }}
+                      >
+                        Choose Resume File
+                      </Button>
+                    </label>
+                    {selectedFile && (
+                      <Box sx={{
+                        p: 2,
                         mb: 2,
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        border: '1px solid rgba(102, 126, 234, 0.2)'
+                      }}>
+                        <Typography variant="body2" sx={{ color: '#667eea', fontWeight: 600 }}>
+                          📎 Selected: {selectedFile.name}
+                        </Typography>
+                      </Box>
+                    )}
+                    <Button
+                      variant="contained"
+                      onClick={handleFileUpload}
+                      disabled={!selectedFile || uploadLoading || startingInterview || generatingQuestions}
+                      fullWidth
+                      size="large"
+                      startIcon={uploadLoading ? <CircularProgress size={20} color="inherit" /> : <UploadIcon />}
+                      sx={{
                         py: 2,
                         borderRadius: 3,
-                        borderColor: '#667eea',
-                        color: '#667eea',
-                        fontWeight: 600,
-                        textTransform: 'none',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         fontSize: '1.1rem',
-                        borderWidth: '2px',
+                        fontWeight: 700,
+                        textTransform: 'none',
+                        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
                         '&:hover': {
-                          borderColor: '#5a67d8',
-                          backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                          borderWidth: '2px'
+                          background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                          boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)',
+                        },
+                        '&:disabled': {
+                          background: 'rgba(0, 0, 0, 0.12)',
+                          boxShadow: 'none'
                         }
                       }}
                     >
-                      Choose Resume File
+                      {uploadLoading ? 'Processing Resume...' : startingInterview ? '🔄 Starting Interview...' : generatingQuestions ? '🤖 Generating Questions...' : '🚀 Upload Resume'}
                     </Button>
-                  </label>
-                  {selectedFile && (
-                    <Box sx={{
-                      p: 2,
-                      mb: 2,
-                      borderRadius: 2,
-                      backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                      border: '1px solid rgba(102, 126, 234, 0.2)'
-                    }}>
-                      <Typography variant="body2" sx={{ color: '#667eea', fontWeight: 600 }}>
-                        📎 Selected: {selectedFile.name}
-                      </Typography>
-                    </Box>
-                  )}
-                  <Button
-                    variant="contained"
-                    onClick={handleFileUpload}
-                    disabled={!selectedFile || uploadLoading || startingInterview || generatingQuestions}
-                    fullWidth
-                    size="large"
-                    startIcon={uploadLoading ? <CircularProgress size={20} color="inherit" /> : <UploadIcon />}
-                    sx={{
-                      py: 2,
-                      borderRadius: 3,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      fontSize: '1.1rem',
-                      fontWeight: 700,
-                      textTransform: 'none',
-                      boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                        boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)',
-                      },
-                      '&:disabled': {
-                        background: 'rgba(0, 0, 0, 0.12)',
-                        boxShadow: 'none'
-                      }
-                    }}
-                  >
-                    {uploadLoading ? 'Processing Resume...' : startingInterview ? '🔄 Starting Interview...' : generatingQuestions ? '🤖 Generating Questions...' : '🚀 Start Interview'}
-                  </Button>
+                  </Box>
                 </Box>
               </CardContent>
             </Card>

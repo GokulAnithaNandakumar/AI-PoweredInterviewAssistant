@@ -56,6 +56,7 @@ class InterviewSession(Base):
     interviewer = relationship("Interviewer", back_populates="interview_sessions")
     questions = relationship("InterviewQuestion", back_populates="session", cascade="all, delete-orphan")
     answers = relationship("InterviewAnswer", back_populates="session", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
 
 class InterviewQuestion(Base):
     __tablename__ = "interview_questions"
@@ -92,7 +93,8 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("interview_sessions.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("interview_sessions.id", ondelete="CASCADE"), nullable=False)
+    session = relationship("InterviewSession", back_populates="chat_messages")
     sender = Column(String, nullable=False)  # 'user' or 'assistant'
     message = Column(Text, nullable=False)
     message_type = Column(String, default="text")  # text, system, question, answer

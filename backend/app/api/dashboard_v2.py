@@ -103,7 +103,10 @@ async def delete_interview_session(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Delete related questions and answers
+
+    # Delete related chat messages, questions, and answers
+    from app.models import ChatMessage
+    db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
     db.query(InterviewAnswer).filter(InterviewAnswer.session_id == session_id).delete()
     db.query(InterviewQuestion).filter(InterviewQuestion.session_id == session_id).delete()
 
