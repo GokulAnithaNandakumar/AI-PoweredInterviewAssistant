@@ -394,7 +394,8 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sessions
+                {[...sessions]
+                  .sort((a, b) => (b.total_score ?? -1) - (a.total_score ?? -1))
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((session) => (
                     <TableRow key={session.id} hover>

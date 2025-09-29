@@ -162,9 +162,9 @@ class QuestionGeneratorAgent:
             print(f"AI question generation failed: {e}")
             # Fallback question if AI fails
             fallback_questions = {
-                "easy": "What is the difference between React functional and class components?",
-                "medium": "How would you implement state management in a React application?",
-                "hard": "Design a scalable architecture for a real-time chat application using React and Node.js."
+                "easy": "Gemini API Overloaded please contact admin or try again later",
+                "medium": "Gemini API Overloaded please contact admin or try again later",
+                "hard": "Gemini API Overloaded please contact admin or try again later"
             }
             return {
                 "question": fallback_questions[difficulty],

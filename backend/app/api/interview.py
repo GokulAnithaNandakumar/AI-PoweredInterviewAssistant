@@ -360,9 +360,9 @@ def start_interview(
         except Exception as e:
             # Fallback questions if AI fails
             fallback_questions = {
-                'easy': "Explain the difference between React functional and class components.",
-                'medium': "How would you implement state management in a React application with multiple components?",
-                'hard': "Design the architecture for a scalable real-time chat application using React and Node.js."
+                'easy': "Gemini API Overloaded please contact admin or try again later",
+                'medium': "Gemini API Overloaded please contact admin or try again later",
+                'hard': "Gemini API Overloaded please contact admin or try again later"
             }
             questions_data.append({
                 'question': fallback_questions[difficulty],
