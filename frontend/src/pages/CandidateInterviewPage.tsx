@@ -203,7 +203,6 @@ const CandidateInterviewPage: React.FC = () => {
       if (response.ok) {
         const data: ContinueResponse = await response.json();
 
-        // Set up questions
         setQuestions(data.questions);
 
         // Pre-fill answers
@@ -215,13 +214,13 @@ const CandidateInterviewPage: React.FC = () => {
           }
         });
 
-        // Update interview state - only complete when all 6 questions are answered
+        // Update interview state
         setInterviewState(prev => ({
           ...prev,
           phase: data.next_question_index >= TOTAL_QUESTIONS ? 'completed' : 'interview',
           currentQuestionIndex: data.next_question_index >= TOTAL_QUESTIONS ? TOTAL_QUESTIONS : data.next_question_index,
           answers: answersArray,
-          timeRemaining: data.next_question_index < TOTAL_QUESTIONS ? 0 : prev.timeRemaining // Reset timer to trigger auto-start
+          timeRemaining: 0 // Always reset timer to 0 so timer auto-starts for the correct question
         }));
 
         // Pre-fill candidate info if available
@@ -233,40 +232,31 @@ const CandidateInterviewPage: React.FC = () => {
           });
         }
 
-        // Add continue message to chat
-        const continueMessage: ChatMessage = {
+        // Rebuild chat: system message, then only the current question/timer
+        const chat: ChatMessage[] = [];
+        chat.push({
           type: 'system',
           content: `${data.message}. Resuming from question ${data.next_question_index + 1}.`,
           timestamp: new Date()
-        };
-
-        setChatMessages(prev => [...prev, continueMessage]);
-
-        // If there's a question to show, show it
+        });
         if (data.next_question_index < TOTAL_QUESTIONS) {
           const currentQuestion = data.questions[data.next_question_index];
-
-          setTimeout(() => {
-            setChatMessages(prev => [
-              ...prev,
-              {
-                type: 'question',
-                content: `**Question ${data.next_question_index + 1}** (${currentQuestion.difficulty.toUpperCase()} - ${currentQuestion.time_limit}s)\n\n${currentQuestion.question}`,
-                timestamp: new Date(),
-                questionData: currentQuestion,
-                isCurrentQuestion: true
-              },
-              {
-                type: 'timer',
-                content: `⏱️ You have ${currentQuestion.time_limit} seconds to answer this question.`,
-                timestamp: new Date()
-              }
-            ]);
-
-            setCurrentAnswer('');
-            // Timer will auto-start via the auto-timer useEffect
-          }, 1000);
+          chat.push({
+            type: 'question',
+            content: `**Question ${data.next_question_index + 1}** (${currentQuestion.difficulty.toUpperCase()} - ${currentQuestion.time_limit}s)\n\n${currentQuestion.question}`,
+            timestamp: new Date(),
+            questionData: currentQuestion,
+            isCurrentQuestion: true
+          });
+          chat.push({
+            type: 'timer',
+            content: `⏱️ You have ${currentQuestion.time_limit} seconds to answer this question.`,
+            timestamp: new Date()
+          });
         }
+        setChatMessages(chat);
+
+        setCurrentAnswer('');
 
         if (showDialog) {
           setShowContinueDialog(false);
@@ -376,119 +366,34 @@ const CandidateInterviewPage: React.FC = () => {
 
   // Auto-start timer when interview phase becomes active
   useEffect(() => {
-    if (interviewState.phase === 'interview' &&
-        questions.length > 0 &&
-        interviewState.currentQuestionIndex < TOTAL_QUESTIONS &&
-        !isTimerActive &&
-        interviewState.timeRemaining === 0) {
-
+    // Only auto-start timer if not already active, not submitting, and not waiting for auto-submit
+    if (
+      interviewState.phase === 'interview' &&
+      questions.length > 0 &&
+      interviewState.currentQuestionIndex < TOTAL_QUESTIONS &&
+      !isTimerActive &&
+      interviewState.timeRemaining === 0 &&
+      !submittingAnswer &&
+      currentAnswer === ''
+    ) {
       const currentQuestion = questions[interviewState.currentQuestionIndex];
       if (currentQuestion) {
-        console.log(`Auto-starting timer for question ${interviewState.currentQuestionIndex + 1}`);
         startTimer(currentQuestion.time_limit);
       }
     }
-  }, [interviewState.phase, interviewState.currentQuestionIndex, questions, isTimerActive, interviewState.timeRemaining, startTimer]);
+  }, [interviewState.phase, interviewState.currentQuestionIndex, questions, isTimerActive, interviewState.timeRemaining, startTimer, submittingAnswer, currentAnswer]);
 
   // Watch for timer expiry and auto-submit
+  const submitBtnRef = useRef<HTMLButtonElement | null>(null);
+
   useEffect(() => {
+    // When timer expires, always auto-submit, even if answer is empty
     if (interviewState.timeRemaining === 0 && isTimerActive && interviewState.phase === 'interview') {
-      // Timer expired - auto submit
       stopTimer();
-
-      setChatMessages(prev => [
-        ...prev,
-        {
-          type: 'system',
-          content: "⏰ Time's up! Moving to the next question...",
-          timestamp: new Date()
-        }
-      ]);
-
-      const answer = currentAnswer.trim() || "[No answer provided - time expired]";
-
-      if (sessionToken && interviewState.currentQuestionIndex < TOTAL_QUESTIONS) {
-        const currentQuestion = questions[interviewState.currentQuestionIndex];
-
-        // Auto-submit via API
-        fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            question_number: interviewState.currentQuestionIndex + 1,
-            answer: answer,
-            time_taken: currentQuestion.time_limit
-          })
-        }).then(response => response.json())
-          .then(data => {
-            const newAnswers = [...interviewState.answers];
-            newAnswers[interviewState.currentQuestionIndex] = answer;
-
-            const nextQuestionIndex = interviewState.currentQuestionIndex + 1;
-
-            setInterviewState(prev => ({
-              ...prev,
-              answers: newAnswers,
-              currentQuestionIndex: nextQuestionIndex
-            }));
-
-            setChatMessages(prev => [
-              ...prev,
-              {
-                type: 'system',
-                content: `✅ Answer auto-submitted! Score: ${data.evaluation?.score || 0}/10`,
-                timestamp: new Date()
-              }
-            ]);
-
-            setCurrentAnswer('');
-
-            // Move to next question or complete
-            setTimeout(() => {
-              if (nextQuestionIndex < TOTAL_QUESTIONS) {
-                const nextQuestion = questions[nextQuestionIndex];
-
-                setChatMessages(prev => [
-                  ...prev,
-                  {
-                    type: 'question',
-                    content: `**Question ${nextQuestionIndex + 1}** (${nextQuestion.difficulty.toUpperCase()} - ${nextQuestion.time_limit}s)\n\n${nextQuestion.question}`,
-                    timestamp: new Date(),
-                    questionData: nextQuestion,
-                    isCurrentQuestion: true
-                  },
-                  {
-                    type: 'timer',
-                    content: `⏱️ You have ${nextQuestion.time_limit} seconds to answer this question.`,
-                    timestamp: new Date()
-                  }
-                ]);
-
-                setCurrentAnswer('');
-                startTimer(nextQuestion.time_limit);
-              } else {
-                // Complete interview
-                setInterviewState(prev => ({ ...prev, phase: 'completed' }));
-
-                setChatMessages(prev => [
-                  ...prev,
-                  {
-                    type: 'completed',
-                    content: "Interview completed! Thank you for your time. Your responses have been recorded and the interviewer will review them shortly.",
-                    timestamp: new Date()
-                  }
-                ]);
-
-                localStorage.removeItem(`interview_${sessionToken}`);
-              }
-            }, 2000);
-          })
-          .catch(() => setError('Failed to auto-submit answer'));
-      }
+      // Directly call submitAnswer with autoSubmit=true to guarantee submission
+      submitAnswer(currentAnswer, true);
     }
-  }, [interviewState.timeRemaining, isTimerActive, interviewState.phase, interviewState.currentQuestionIndex, interviewState.answers, currentAnswer, sessionToken, questions, stopTimer, startTimer]);
+  }, [interviewState.timeRemaining, isTimerActive, interviewState.phase, stopTimer, currentAnswer]);
 
   // Resume upload
   const handleFileUpload = async () => {
@@ -547,6 +452,14 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
+      // Ensure all required fields are present
+      const requiredFields = ['name', 'email', 'phone'];
+      const missing = requiredFields.filter(f => !candidateInfo[f as keyof CandidateInfo]);
+      if (missing.length > 0) {
+        setError('Please fill all required fields: ' + missing.join(', '));
+        return;
+      }
+
       const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/candidate-info`, {
         method: 'PUT',
         headers: {
@@ -564,6 +477,7 @@ const CandidateInterviewPage: React.FC = () => {
             timestamp: new Date()
           }
         ]);
+        setMissingFields([]); // Clear missing fields so interview can start
         startInterview();
       } else {
         setError('Failed to update information');
@@ -1399,40 +1313,27 @@ const CandidateInterviewPage: React.FC = () => {
                       }
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.ctrlKey) {
-                        submitAnswer(currentAnswer);
-                      }
+                      if (e.key === 'Enter' && e.ctrlKey) {/* Lines 1319-1320 omitted */}
                     }}
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                    <Typography variant="body2" sx={{
-                      color: 'text.secondary',
-                      background: 'rgba(102, 126, 234, 0.1)',
-                      px: 2,
-                      py: 1,
-                      borderRadius: 2,
-                      fontWeight: 500
-                    }}>
-                      💡 Press Ctrl+Enter to submit quickly
-                    </Typography>
                     <Button
+                      ref={submitBtnRef}
                       variant="contained"
+                      color="primary"
                       size="large"
-                      onClick={() => submitAnswer(currentAnswer)}
-                      disabled={!currentAnswer.trim() || !isTimerActive || submittingAnswer}
-                      startIcon={submittingAnswer ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
+                      onClick={() => submitAnswer(currentAnswer, false)}
+                      disabled={submittingAnswer || interviewState.phase !== 'interview'}
                       sx={{
-                        px: 4,
-                        py: 2,
-                        borderRadius: 3,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        fontSize: '1.1rem',
+                        minWidth: 120,
                         fontWeight: 700,
+                        fontSize: '1.1rem',
+                        borderRadius: 3,
+                        boxShadow: '0 4px 16px rgba(102, 126, 234, 0.15)',
                         textTransform: 'none',
-                        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         '&:hover': {
                           background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
-                          boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)',
                         },
                         '&:disabled': {
                           background: 'rgba(0, 0, 0, 0.12)',
