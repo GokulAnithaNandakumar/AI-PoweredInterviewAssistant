@@ -215,6 +215,7 @@ const CandidateInterviewPage: React.FC = () => {
         });
 
         // Update interview state
+        console.log('[DEBUG] Continue: next_question_index', data.next_question_index, 'questions:', data.questions);
         setInterviewState(prev => ({
           ...prev,
           phase: data.next_question_index >= TOTAL_QUESTIONS ? 'completed' : 'interview',
@@ -232,14 +233,16 @@ const CandidateInterviewPage: React.FC = () => {
           });
         }
 
-        // Rebuild chat: system message, then only the current question/timer
+        // Rebuild chat: system message, then only the current question/timer for resume
+
         const chat: ChatMessage[] = [];
         chat.push({
           type: 'system',
           content: `${data.message}. Resuming from question ${data.next_question_index + 1}.`,
           timestamp: new Date()
         });
-        if (data.next_question_index < TOTAL_QUESTIONS) {
+        // Defensive: only show question if index is in range
+        if (data.next_question_index < data.questions.length) {
           const currentQuestion = data.questions[data.next_question_index];
           chat.push({
             type: 'question',
@@ -256,7 +259,7 @@ const CandidateInterviewPage: React.FC = () => {
         }
         setChatMessages(chat);
 
-        setCurrentAnswer('');
+        setCurrentAnswer(answersArray[data.next_question_index] || '');
 
         if (showDialog) {
           setShowContinueDialog(false);
@@ -460,12 +463,19 @@ const CandidateInterviewPage: React.FC = () => {
         return;
       }
 
+      // Map frontend fields to backend keys
+      const backendCandidateInfo = {
+        candidate_name: candidateInfo.name,
+        candidate_email: candidateInfo.email,
+        candidate_phone: candidateInfo.phone
+      };
+
       const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/candidate-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(candidateInfo)
+        body: JSON.stringify(backendCandidateInfo)
       });
 
       if (response.ok) {
@@ -495,12 +505,16 @@ const CandidateInterviewPage: React.FC = () => {
     setGeneratingQuestions(true);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/start-interview`, {
+      console.log('[DEBUG] startInterview: sessionToken', sessionToken);
+      const url = `http://localhost:8000/api/interview/${sessionToken}/start-interview`;
+      console.log('[DEBUG] startInterview: POST', url);
+      const response = await fetch(url, {
         method: 'POST',
       });
-
+      console.log('[DEBUG] startInterview: response status', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('[DEBUG] startInterview: response data', data);
         setQuestions(data.questions || []);
         setInterviewState(prev => ({
           ...prev,
@@ -523,10 +537,24 @@ const CandidateInterviewPage: React.FC = () => {
           askNextQuestion(0, data.questions);
         }
       } else {
-        setError('Failed to start interview');
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch {
+          errorText = '[Could not parse error body]';
+        }
+        console.error('[ERROR] startInterview: response error', response.status, errorText);
+        setError('Failed to start interview: ' + errorText);
       }
-    } catch {
-      setError('Failed to start interview');
+    } catch (err) {
+      console.error('[ERROR] startInterview: exception', err);
+      let errMsg = '';
+      if (err && typeof err === 'object' && 'message' in err) {
+        errMsg = (err as any).message;
+      } else {
+        errMsg = String(err);
+      }
+      setError('Failed to start interview: ' + errMsg);
     } finally {
       setStartingInterview(false);
       setGeneratingQuestions(false);
@@ -767,7 +795,7 @@ const CandidateInterviewPage: React.FC = () => {
                   <strong>Progress:</strong> {continueStatus.answered_questions}/{continueStatus.total_questions} questions answered
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
-                  <strong>Attempts:</strong> {continueStatus.retry_count}/1
+                  <strong>Attempts:</strong> {continueStatus.retry_count} <strong>Do not Reload</strong>
                 </Typography>
               </Box>
 
