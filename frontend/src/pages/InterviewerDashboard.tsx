@@ -85,6 +85,7 @@ interface CandidateDetails {
   candidate_name?: string;
   candidate_email?: string;
   candidate_phone?: string;
+  role?: string;
   resume_url?: string;
   resume_filename?: string;
   status: 'created' | 'in_progress' | 'completed' | 'abandoned' | 'max_retries_reached';
@@ -480,6 +481,7 @@ const InterviewerDashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   <Typography>Name: {candidateDetail.candidate_name?.trim() ? candidateDetail.candidate_name : 'Not provided'}</Typography>
                   <Typography>Email: {candidateDetail.candidate_email?.trim() ? candidateDetail.candidate_email : 'Not provided'}</Typography>
                   <Typography>Phone: {candidateDetail.candidate_phone?.trim() ? candidateDetail.candidate_phone : 'Not provided'}</Typography>
+                  <Typography>Role: {candidateDetail.role?.trim() ? candidateDetail.role : 'Not provided'}</Typography>
                   <Typography>Resume: {candidateDetail.resume_url ? (
                     <a href={candidateDetail.resume_url} target="_blank" rel="noopener noreferrer">View Resume</a>
                   ) : 'Not provided'}</Typography>
