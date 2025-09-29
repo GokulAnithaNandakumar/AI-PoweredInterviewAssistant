@@ -21,7 +21,7 @@ async def test_api_integration():
         result = await EmailService.send_interview_link(
             candidate_email="integration.test@example.com",
             candidate_name="Integration Test User",
-            interview_link="http://localhost:3000/interview/test_token",
+            interview_link="https://ai-powered-interview-assistant-chi.vercel.app/interview/test_token",
             interviewer_name="Test Interviewer"
         )
 

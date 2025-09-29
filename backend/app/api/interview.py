@@ -260,7 +260,7 @@ async def upload_resume(
         resume_url = storage_service.store_resume(content, resume.filename, candidate_name)
     except Exception as e:
         print(f"Cloudinary storage failed, using fallback: {str(e)}")
-        resume_url = "http://localhost:8000/temp-resume-url"
+        resume_url = "https://ai-poweredinterviewassistant.onrender.com/temp-resume-url"
 
     # Update session with extracted info and resume storage info
     update_data = {

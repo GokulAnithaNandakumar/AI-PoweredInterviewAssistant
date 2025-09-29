@@ -150,7 +150,7 @@ const CandidateInterviewPage: React.FC = () => {
     const handleMaxRetry = async () => {
       // Call backend to force score/summary generation
       try {
-        const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/complete`, {
+        const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/complete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -279,7 +279,7 @@ const CandidateInterviewPage: React.FC = () => {
   // Function to save chat message to backend
   const saveChatMessageToBackend = useCallback(async (message: ChatMessage) => {
     try {
-      await fetch(`http://localhost:8000/api/interview/${sessionToken}/chat`, {
+      await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -321,7 +321,7 @@ const CandidateInterviewPage: React.FC = () => {
     if (!sessionToken) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/continue-interview`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/continue-interview`, {
         method: 'POST',
       });
 
@@ -424,13 +424,13 @@ const CandidateInterviewPage: React.FC = () => {
 
     try {
       // First, get session info
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/info`);
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/info`);
       if (response.ok) {
         const data = await response.json();
         setSessionInfo(data);
 
         // Check continue status
-        const continueResponse = await fetch(`http://localhost:8000/api/interview/${sessionToken}/continue-status`);
+        const continueResponse = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/continue-status`);
         if (continueResponse.ok) {
           const continueData = await continueResponse.json();
           console.log('Continue status data:', continueData);
@@ -571,7 +571,7 @@ const CandidateInterviewPage: React.FC = () => {
       const formData = new FormData();
       formData.append('resume', selectedFile);
 
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/upload-resume`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/upload-resume`, {
         method: 'POST',
         body: formData
       });
@@ -680,7 +680,7 @@ const CandidateInterviewPage: React.FC = () => {
         candidate_phone: candidateInfo.phone
       };
 
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/candidate-info`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/candidate-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -732,7 +732,7 @@ const CandidateInterviewPage: React.FC = () => {
 
     try {
       console.log('[DEBUG] startInterview: sessionToken', sessionToken);
-      const url = `http://localhost:8000/api/interview/${sessionToken}/start-interview`;
+      const url = `https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/start-interview`;
       console.log('[DEBUG] startInterview: POST', url);
       const response = await fetch(url, {
         method: 'POST',
@@ -838,7 +838,7 @@ const CandidateInterviewPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/interview/${sessionToken}/submit-answer`, {
+      const response = await fetch(`https://ai-poweredinterviewassistant.onrender.com/api/interview/${sessionToken}/submit-answer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
