@@ -169,6 +169,7 @@ async def get_session_details(
         "candidate_phone": session.candidate_phone,
         "resume_url": session.resume_url,
         "resume_filename": session.resume_filename,
+        "role": session.role,
         "status": get_status(session),
         "current_question_index": session.current_question_index,
         "total_score": session.total_score,
