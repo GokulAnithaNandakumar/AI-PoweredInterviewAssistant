@@ -16,7 +16,6 @@ import {
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
-  Send as SendIcon,
   Timer as TimerIcon,
   CheckCircle as CompleteIcon,
   Chat as ChatIcon,
