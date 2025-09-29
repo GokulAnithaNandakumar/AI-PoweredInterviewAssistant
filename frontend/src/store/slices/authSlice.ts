@@ -46,8 +46,10 @@ export const registerInterviewer = createAsyncThunk(
 
 export const createInterviewSession = createAsyncThunk(
   'auth/createSession',
-  async (sessionData: { candidate_email: string; candidate_name?: string }) => {
-    const response = await authAPI.createSession(sessionData);
+  async (sessionData: { candidate_email: string; candidate_name?: string; role?: string }) => {
+    // Always set role to 'candidate' if not provided
+    const payload = { ...sessionData, role: sessionData.role || 'candidate' };
+    const response = await authAPI.createSession(payload);
     return response;
   }
 );

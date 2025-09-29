@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import './CandidateInterviewPage.css';
 import {
   Box,
@@ -135,7 +135,6 @@ const CandidateInterviewPage: React.FC = () => {
     }
   }, [showContinueDialog]);
   const { sessionToken } = useParams<{ sessionToken: string }>();
-  const navigate = useNavigate();
 
 
   // ...existing code...
@@ -1578,6 +1577,7 @@ const CandidateInterviewPage: React.FC = () => {
                     onChange={(e) => setCurrentAnswer(e.target.value)}
                     fullWidth
                     variant="outlined"
+                    disabled={submittingAnswer}
                     sx={{
                       mb: 3,
                       '& .MuiOutlinedInput-root': {
