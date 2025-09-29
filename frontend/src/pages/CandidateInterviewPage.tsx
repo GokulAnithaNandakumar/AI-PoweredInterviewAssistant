@@ -112,12 +112,12 @@ const CandidateInterviewPage: React.FC = () => {
   // --- Continue Interview Button Timeout ---
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [canClickContinue, setCanClickContinue] = useState(false);
-  const [continueCountdown, setContinueCountdown] = useState(10);
+  const [continueCountdown, setContinueCountdown] = useState(20);
 
   useEffect(() => {
     if (showContinueDialog) {
       setCanClickContinue(false);
-      setContinueCountdown(10);
+      setContinueCountdown(20);
       const interval = setInterval(() => {
         setContinueCountdown((prev) => {
           if (prev <= 1) {
@@ -131,7 +131,7 @@ const CandidateInterviewPage: React.FC = () => {
       return () => clearInterval(interval);
     } else {
       setCanClickContinue(false);
-      setContinueCountdown(10);
+      setContinueCountdown(20);
     }
   }, [showContinueDialog]);
   const { sessionToken } = useParams<{ sessionToken: string }>();
@@ -753,7 +753,7 @@ const CandidateInterviewPage: React.FC = () => {
           ...prev,
           {
             type: 'system',
-            content: "🚀 Excellent! I've generated your personalized technical interview questions. You'll have 6 questions total:\n\n• 2 Easy questions (20 seconds each)\n• 2 Medium questions (60 seconds each) \n• 2 Hard questions (120 seconds each)\n\nLet's begin with your first question!",
+            content: "Excellent! I've generated your personalized technical interview questions. You'll have 6 questions total:\n\n• 2 Easy questions (20 seconds each)\n• 2 Medium questions (60 seconds each) \n• 2 Hard questions (120 seconds each)\n\nLet's begin with your first question!",
             timestamp: new Date()
           }
         ]);
@@ -1473,7 +1473,7 @@ const CandidateInterviewPage: React.FC = () => {
                         }
                       }}
                     >
-                      {uploadLoading ? 'Processing Resume...' : startingInterview ? '🔄 Starting Interview...' : generatingQuestions ? '🤖 Generating Questions...' : '🚀 Upload Resume'}
+                      {uploadLoading ? 'Processing Resume...' : startingInterview ? '🔄 Starting Interview...' : generatingQuestions ? '🤖 Generating Questions...' : 'Upload Resume'}
                     </Button>
                   </Box>
                 </Box>
@@ -1567,7 +1567,7 @@ const CandidateInterviewPage: React.FC = () => {
                     color: '#2d3748',
                     fontWeight: 600
                   }}>
-                    💭 Your Answer:
+                    Your Answer:
                   </Typography>
                   <TextField
                     multiline
@@ -1625,7 +1625,7 @@ const CandidateInterviewPage: React.FC = () => {
                         }
                       }}
                     >
-                      {submittingAnswer ? '🔄 Submitting...' : '🚀 Submit Answer'}
+                      {submittingAnswer ? '🔄 Submitting...' : 'Submit Answer'}
                     </Button>
                   </Box>
                 </CardContent>
