@@ -17,7 +17,6 @@ import {
 import {
   CloudUpload as UploadIcon,
   Timer as TimerIcon,
-  CheckCircle as CompleteIcon,
   Chat as ChatIcon,
 } from '@mui/icons-material';
 
@@ -949,20 +948,10 @@ const CandidateInterviewPage: React.FC = () => {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: '#f7f9fb', // very light gray for subtlety
       position: 'relative',
       overflow: 'auto'
     }}>
-      {/* Animated Background Particles */}
-      <Box sx={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%)',
-        zIndex: -1
-      }} />
 
       {/* Continue Interview Dialog */}
       {showContinueDialog && continueStatus && (
@@ -972,7 +961,7 @@ const CandidateInterviewPage: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
@@ -980,62 +969,46 @@ const CandidateInterviewPage: React.FC = () => {
           p: 2
         }}>
           <Card sx={{
-            maxWidth: 500,
+            maxWidth: 420,
             width: '100%',
-            borderRadius: 4,
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            borderRadius: 3,
+            boxShadow: 2,
+            border: '1px solid #e0e0e0',
+            background: '#fff'
           }}>
-            <CardContent sx={{ p: 4 }}>
+            <CardContent sx={{ p: 3 }}>
               <Typography variant="h5" sx={{
-                fontWeight: 700,
+                fontWeight: 600,
                 mb: 2,
-                color: '#1a202c',
+                color: 'text.primary',
                 textAlign: 'center'
               }}>
-                Continue Your Interview?
+                Continue Your Interview
               </Typography>
-
-              <Typography variant="body1" sx={{
-                mb: 3,
-                color: '#4a5568',
-                textAlign: 'center',
-                lineHeight: 1.6
-              }}>
+              <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary', textAlign: 'center' }}>
                 You have previously started this interview. You can continue from where you left off.
               </Typography>
-
               <Box sx={{
-                backgroundColor: '#f7fafc',
-                p: 3,
-                borderRadius: 2,
-                mb: 3,
-                border: '1px solid #e2e8f0'
+                backgroundColor: '#f5f5f5',
+                p: 2,
+                borderRadius: 1,
+                mb: 2,
+                border: '1px solid #e0e0e0',
+                textAlign: 'center'
               }}>
-                <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   <strong>Progress:</strong> {continueStatus.answered_questions}/{continueStatus.total_questions} questions answered
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#2d3748', mb: 1 }}>
-                  <strong>Final Attempt Do Not Reload</strong>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  <strong>Final Attempt</strong>
                 </Typography>
               </Box>
-
-              <Box sx={{
-                display: 'flex',
-                gap: 2,
-                justifyContent: 'center',
-                mt: 3
-              }}>
-
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2 }}>
                 <Button
                   variant="contained"
                   onClick={() => handleContinueInterview(true)}
                   disabled={!canClickContinue}
-                  sx={{
-                    backgroundColor: '#667eea',
-                    '&:hover': {
-                      backgroundColor: '#5a67d8'
-                    }
-                  }}
+                  sx={{ minWidth: 180 }}
                 >
                   {canClickContinue ? 'Continue Interview' : `Please wait... (${continueCountdown}s)`}
                 </Button>
@@ -1048,102 +1021,63 @@ const CandidateInterviewPage: React.FC = () => {
       {/* Content Container */}
       <Box sx={{ position: 'relative', zIndex: 1, p: { xs: 2, sm: 3, md: 4 } }}>
         <Container maxWidth="lg">
-          {/* Modern Header Card */}
+          {/* Minimal Professional Header Card */}
           <Card elevation={0} sx={{
             mb: 4,
-            borderRadius: 4,
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            borderRadius: 3,
+            background: '#fff',
+            border: '1px solid #e0e0e0',
+            boxShadow: 1
           }}>
-            <CardContent sx={{ p: 4 }}>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3 }}>
                 <Box>
-                  <Typography variant="h3" component="h1" sx={{
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                  <Typography variant="h4" component="h1" sx={{
+                    fontWeight: 700,
+                    color: 'text.primary',
                     mb: 1,
                     display: 'flex',
                     alignItems: 'center'
                   }}>
-                    <ChatIcon sx={{ mr: 2, color: '#667eea', fontSize: '2.5rem' }} />
+                    <ChatIcon sx={{ mr: 2, color: 'primary.main', fontSize: '2.2rem' }} />
                     Technical Interview
                   </Typography>
-                  <Typography variant="h6" sx={{
-                    color: 'text.secondary',
-                    fontWeight: 500,
-                    ml: 7
-                  }}>
-                    {sessionInfo?.position_title || ''}
+                  <Typography variant="subtitle1" sx={{ color: 'text.secondary', fontWeight: 400, ml: 7 }}>
+                    {sessionInfo?.position_title ? `Interview for ${sessionInfo.position_title}` : ''}
                   </Typography>
                 </Box>
                 {interviewState.phase === 'interview' && (
                   <Card sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: 3,
-                    color: 'white'
+                    background: '#f5f5f5',
+                    borderRadius: 2,
+                    color: 'text.primary',
+                    border: '1px solid #e0e0e0',
+                    boxShadow: 0,
+                    p: 2,
+                    minWidth: 160
                   }}>
-                    <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-                        Question {interviewState.currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
-                      </Typography>
-                      {continueStatus && continueStatus.retry_count > 0 && (
-                        <Typography variant="body2" sx={{
-                          color: 'rgba(255, 255, 255, 0.8)',
-                          mb: 1,
-                          fontSize: '0.85rem'
-                        }}>
-                          Final Attempt do not Reload
-                        </Typography>
-                      )}
-                      {isTimerActive && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                          <TimerIcon sx={{
-                            color: interviewState.timeRemaining <= 10 ? '#ff4757' : 'white',
-                            fontSize: '1.5rem'
-                          }} />
-                          <Typography
-                            variant="h4"
-                            sx={{
-                              color: interviewState.timeRemaining <= 10 ? '#ff4757' : 'white',
-                              fontWeight: 800,
-                              fontFamily: 'monospace'
-                            }}
-                          >
-                            {formatTime(interviewState.timeRemaining)}
-                          </Typography>
-                        </Box>
-                      )}
-                    </CardContent>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Question {interviewState.currentQuestionIndex + 1} of {TOTAL_QUESTIONS}
+                    </Typography>
                   </Card>
                 )}
               </Box>
-
               {interviewState.phase === 'interview' && (
-                <Box sx={{ mt: 3 }}>
+                <Box sx={{ mt: 2 }}>
                   <LinearProgress
                     variant="determinate"
                     value={(interviewState.currentQuestionIndex / TOTAL_QUESTIONS) * 100}
                     sx={{
-                      height: 12,
-                      borderRadius: 6,
-                      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#f0f0f0',
                       '& .MuiLinearProgress-bar': {
-                        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-                        borderRadius: 6
+                        background: '#1976d2',
+                        borderRadius: 4
                       }
                     }}
                   />
-                  <Typography variant="body2" sx={{
-                    mt: 1,
-                    textAlign: 'center',
-                    color: 'text.secondary',
-                    fontWeight: 500
-                  }}>
+                  <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', color: 'text.secondary', fontWeight: 400 }}>
                     Progress: {Math.round((interviewState.currentQuestionIndex / TOTAL_QUESTIONS) * 100)}%
                   </Typography>
                 </Box>
@@ -1634,62 +1568,105 @@ const CandidateInterviewPage: React.FC = () => {
           )}
 
           {/* Modern Completion Phase */}
-          {interviewState.phase === 'completed' && (
+              {interviewState.phase === 'interview' && (
+                <Box sx={{ mt: 2 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={(interviewState.currentQuestionIndex / TOTAL_QUESTIONS) * 100}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#f0f0f0',
+                      '& .MuiLinearProgress-bar': {
+                        background: '#1976d2',
+                        borderRadius: 4
+                      }
+                    }}
+                  />
+                  <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', color: 'text.secondary', fontWeight: 400 }}>
+                    Progress: {Math.round((interviewState.currentQuestionIndex / TOTAL_QUESTIONS) * 100)}%
+                  </Typography>
+                </Box>
+              )}
+
+          {/* Minimal Chat Interface - Missing Info Phase */}
+          {interviewState.phase === 'missing-info' && (
             <Card elevation={0} sx={{
-              borderRadius: 4,
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-              textAlign: 'center'
+              borderRadius: 3,
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              boxShadow: 1,
+              overflow: 'hidden',
+              mb: 4
             }}>
-              <CardContent sx={{ p: 6 }}>
-                <Box sx={{ mb: 4 }}>
-                  <CompleteIcon sx={{
-                    fontSize: '4rem',
-                    color: '#48bb78',
-                    mb: 2,
-                    filter: 'drop-shadow(0 4px 8px rgba(72, 187, 120, 0.3))'
-                  }} />
-                  <Typography variant="h3" sx={{
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    mb: 2
-                  }}>
-                    Interview Complete!
-                  </Typography>
-                  <Typography variant="h6" sx={{
-                    color: 'text.secondary',
-                    maxWidth: '500px',
-                    mx: 'auto',
-                    lineHeight: 1.6
-                  }}>
-                    Thank you for your time and thoughtful responses. Your interview has been successfully completed and submitted for review.
-                  </Typography>
-                </Box>
-                <Box sx={{
-                  background: 'linear-gradient(135deg, rgba(72, 187, 120, 0.1) 0%, rgba(56, 161, 105, 0.1) 100%)',
-                  borderRadius: 3,
-                  p: 3,
-                  border: '1px solid rgba(72, 187, 120, 0.2)'
-                }}>
-                  <Typography variant="body1" sx={{
-                    color: '#2d3748',
-                    fontWeight: 500
-                  }}>
-                    ✨ You may now safely close this window
-                  </Typography>
-                </Box>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Please complete your profile to continue.</Typography>
+                {/* ...form fields and submit button... */}
               </CardContent>
             </Card>
           )}
+
+          {/* Minimal Chat Interface - Upload Phase */}
+          {interviewState.phase === 'upload' && (
+            <Card elevation={0} sx={{
+              borderRadius: 3,
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              boxShadow: 1,
+              overflow: 'hidden',
+              mb: 4
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Upload your resume to begin the interview.</Typography>
+                {/* ...upload form and chat... */}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Minimal Interview Phase */}
+          {interviewState.phase === 'interview' && interviewState.currentQuestionIndex < TOTAL_QUESTIONS && (
+            <Card elevation={0} sx={{
+              borderRadius: 3,
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              boxShadow: 1,
+              overflow: 'hidden',
+              mb: 4
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Answer the question below:</Typography>
+                {/* ...question and answer input... */}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Minimal Completion Phase */}
+          {interviewState.phase === 'completed' && (
+            <Card elevation={0} sx={{
+              borderRadius: 3,
+              background: '#fff',
+              border: '1px solid #e0e0e0',
+              boxShadow: 1,
+              textAlign: 'center',
+              mb: 4
+            }}>
+              <CardContent sx={{ p: 4 }}>
+                <Typography variant="h5" sx={{ mb: 2, color: 'success.main' }}>Interview Complete!</Typography>
+                <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
+                  Thank you for your time and thoughtful responses. Your interview has been successfully completed and submitted for review.
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  ✨ You may now safely close this window
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
         </Container>
       </Box>
     </Box>
   );
-};
+}
+
 
 export default CandidateInterviewPage;
