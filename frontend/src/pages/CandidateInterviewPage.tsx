@@ -201,6 +201,46 @@ const CandidateInterviewPage: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Function to save chat message to backend
+  const saveChatMessageToBackend = useCallback(async (message: ChatMessage) => {
+    try {
+      await fetch(`http://localhost:8000/api/interview/${sessionToken}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: message.type === 'user' ? 'candidate' : 'system',
+          message: message.content,
+          message_type: message.type,
+          message_metadata: message.questionData ? {
+            question_id: message.questionData.id,
+            question_number: message.questionData.question_number,
+            difficulty: message.questionData.difficulty,
+            time_limit: message.questionData.time_limit,
+            category: message.questionData.category,
+            isCurrentQuestion: message.isCurrentQuestion
+          } : null
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save chat message to backend:', error);
+    }
+  }, [sessionToken]);
+
+  // Watch for new chat messages and save them to backend
+  const previousMessageCountRef = useRef(0);
+  useEffect(() => {
+    // Only save new messages, not initial load or bulk replacements
+    if (chatMessages.length > previousMessageCountRef.current &&
+        previousMessageCountRef.current > 0) {
+      // Save only the new messages (from the previous count onwards)
+      const newMessages = chatMessages.slice(previousMessageCountRef.current);
+      newMessages.forEach(message => saveChatMessageToBackend(message));
+    }
+    previousMessageCountRef.current = chatMessages.length;
+  }, [chatMessages, saveChatMessageToBackend]);
+
   // Handle continuing interview
   const handleContinueInterview = useCallback(async (showDialog = true) => {
     if (!sessionToken) return;

@@ -141,17 +141,17 @@ async def get_session_details(
         InterviewAnswer.session_id == session_id
     ).all()
 
-    # Optionally, get chat history if you store it (empty list for now)
+    # Get chat history and avoid recursion/circular references
     chat_history = []
     if hasattr(session, 'chat_messages'):
         chat_history = [
             {
                 "id": m.id,
-                "sender": getattr(m, 'sender', ''),
-                "message": getattr(m, 'message', ''),
-                "message_type": getattr(m, 'message_type', ''),
-                "metadata": getattr(m, 'metadata', None),
-                "timestamp": m.created_at.isoformat() if hasattr(m, 'created_at') and m.created_at else ''
+                "sender": m.sender,
+                "message": m.message,
+                "message_type": m.message_type,
+                "message_metadata": m.message_metadata,
+                "timestamp": m.timestamp.isoformat() if m.timestamp else None
             }
             for m in getattr(session, 'chat_messages', [])
         ]
