@@ -14,7 +14,7 @@ This project is a full-stack AI-powered interview assistant with:
 flowchart TD
     subgraph Frontend [React + Vite + TypeScript]
         A1[Interviewer Login/Register]
-        A2[Dashboard (List, Search, Sort, View Candidates)]
+        A2[Dashboard: List, Search, Sort, View Candidates]
         A3[Generate Interview Link]
         A4[Candidate Chat/Interview]
         A5[Resume Upload]
@@ -36,11 +36,11 @@ flowchart TD
     end
 
     subgraph DB [Neon PostgreSQL]
-        D1[(Interviewers)]
-        D2[(Sessions)]
-        D3[(Questions)]
-        D4[(Answers)]
-        D5[(ChatMessages)]
+        D1[Interviewers]
+        D2[Sessions]
+        D3[Questions]
+        D4[Answers]
+        D5[ChatMessages]
     end
 
     A1-->|JWT|B1

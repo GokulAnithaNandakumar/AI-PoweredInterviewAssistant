@@ -13,7 +13,7 @@ import {
   CircularProgress,
   Divider
 } from '@mui/material';
-import { Person, Email, Lock, Login, PersonAdd } from '@mui/icons-material';
+import { Person, Email, Lock, Login } from '@mui/icons-material';
 import { loginInterviewer, registerInterviewer } from '../store/slices/authSlice';
 import type { AppDispatch } from '../store';
 
@@ -189,7 +189,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
           {/* Tabs */}
           <Tabs value={activeTab} onChange={handleTabChange} centered sx={{ mb: 2 }}>
             <Tab icon={<Login />} label="Login" />
-            <Tab icon={<PersonAdd />} label="Register" />
+            {/* <Tab icon={<PersonAdd />} label="Register" /> */}
           </Tabs>
 
           <Divider sx={{ mb: 2 }} />
