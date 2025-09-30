@@ -1,53 +1,64 @@
 # 🎯 AI-Powered Interview Assistant
 
-## 🌟 **Enhanced Architecture with Authentication**
+## 🌟 **Project Architecture**
 
-A sophisticated interview management system featuring **interviewer authentication**, **link-based candidate access**, and **real-time synchronization** between interviewer dashboard and candidate sessions.
+This project is a full-stack AI-powered interview assistant with:
+- **React + Vite + TypeScript** frontend (dashboard & candidate chat)
+- **FastAPI (Python)** backend (REST API & WebSocket)
+- **Google Gemini + LangGraph** for AI question/answer/summary
+- **Neon PostgreSQL** for persistent storage
 
 ### 🏗️ **System Architecture**
 
 ```mermaid
-graph TB
-    subgraph "Frontend (React + Vite + TypeScript)"
-        A[Interviewer Login] --> B[Dashboard]
-        B --> C[Generate Candidate Links]
-        D[Candidate Access] --> E[Interview Session]
-        E --> F[Real-time Chat]
+flowchart TD
+    subgraph Frontend [React + Vite + TypeScript]
+        A1[Interviewer Login/Register]
+        A2[Dashboard (List, Search, Sort, View Candidates)]
+        A3[Generate Interview Link]
+        A4[Candidate Chat/Interview]
+        A5[Resume Upload]
+        A6[Real-time Progress]
     end
 
-    subgraph "Backend (FastAPI + Python)"
-        G[Authentication API]
-        H[Interview Management]
-        I[Dashboard API]
-        J[WebSocket Server]
+    subgraph Backend [FastAPI Python]
+        B1[Auth API]
+        B2[Dashboard API]
+        B3[Interview API]
+        B4[WebSocket Server]
     end
 
-    subgraph "AI Layer (Gemini + LangGraph)"
-        K[Question Generator]
-        L[Answer Evaluator]
-        M[Resume Parser]
-        N[Summary Generator]
+    subgraph AI [Gemini + LangGraph]
+        C1[Resume Parser]
+        C2[Question Generator]
+        C3[Answer Evaluator]
+        C4[Summary Generator]
     end
 
-    subgraph "Database (Neon PostgreSQL)"
-        O[(Interviewers)]
-        P[(Sessions)]
-        Q[(Questions)]
-        R[(Answers)]
+    subgraph DB [Neon PostgreSQL]
+        D1[(Interviewers)]
+        D2[(Sessions)]
+        D3[(Questions)]
+        D4[(Answers)]
+        D5[(ChatMessages)]
     end
 
-    A --> G
-    C --> H
-    E --> I
-    F --> J
-    H --> K
-    H --> L
-    H --> M
-    H --> N
-    G --> O
-    H --> P
-    K --> Q
-    L --> R
+    A1-->|JWT|B1
+    A2-->|REST|B2
+    A3-->|REST|B2
+    A4-->|REST|B3
+    A4-->|WebSocket|B4
+    A5-->|File Upload|B3
+    B1-->|SQLAlchemy|D1
+    B2-->|SQLAlchemy|D2
+    B3-->|SQLAlchemy|D2
+    B3-->|SQLAlchemy|D3
+    B3-->|SQLAlchemy|D4
+    B3-->|SQLAlchemy|D5
+    B3-->|AI Call|C1
+    B3-->|AI Call|C2
+    B3-->|AI Call|C3
+    B3-->|AI Call|C4
 ```
 
 ## 🚀 **Key Features**
@@ -228,24 +239,25 @@ npm run dev
 ## 🔌 **API Endpoints**
 
 ### **Authentication**
-- `POST /api/auth/register` - Register interviewer
-- `POST /api/auth/login` - Login interviewer
-- `POST /api/auth/create-session` - Generate candidate link
+- `POST /api/auth/register` — Register interviewer
+- `POST /api/auth/login` — Login interviewer
+- `POST /api/auth/create-session` — Generate candidate link (with role)
 
-### **Interview**
-- `GET /api/interview/{token}/info` - Get session info
-- `POST /api/interview/{token}/upload-resume` - Upload resume
-- `PUT /api/interview/{token}/candidate-info` - Update candidate info
-- `POST /api/interview/{token}/start-interview` - Begin interview
-- `POST /api/interview/{token}/submit-answer` - Submit answer
+### **Interview (Candidate)**
+- `GET /api/interview/{token}/info` — Get session info (name, email, phone, role, status, etc)
+- `POST /api/interview/{token}/upload-resume` — Upload resume (PDF/DOCX)
+- `PUT /api/interview/{token}/candidate-info` — Update candidate info (missing fields)
+- `POST /api/interview/{token}/start-interview` — Begin interview
+- `POST /api/interview/{token}/submit-answer` — Submit answer
 
-### **Dashboard**
-- `GET /api/dashboard/sessions` - Get all candidates
-- `GET /api/dashboard/session/{id}` - Get candidate details
-- `GET /api/dashboard/stats` - Get dashboard statistics
+### **Dashboard (Interviewer)**
+- `GET /api/dashboard/sessions` — List all sessions for interviewer
+- `GET /api/dashboard/sessions/{id}/details` — Get full candidate details (including role)
+- `GET /api/dashboard/stats` — Dashboard statistics
+- `DELETE /api/dashboard/sessions/{id}` — Delete a session
 
 ### **WebSocket**
-- `WS /ws/{session_token}` - Real-time communication
+- `WS /ws/{session_token}` — Real-time chat/interview updates
 
 ## 🤖 **AI Agent Architecture**
 
