@@ -449,38 +449,3 @@ frontend/
 │   └── types/           # TypeScript definitions
 └── public/              # Static assets
 ```
-
-## 🤝 **Contributing**
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 **License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 **Acknowledgments**
-
-- **Swipe** for the comprehensive assignment requirements
-- **Google Gemini** for powerful AI capabilities
-- **Neon** for serverless PostgreSQL hosting
-- **Ant Design** for beautiful UI components
-
----
-
-## 🔗 **Live Demo Links**
-
-- **Frontend**: [https://your-app.vercel.app](https://your-app.vercel.app)
-- **Backend API**: [https://your-api.railway.app](https://your-api.railway.app)
-- **API Documentation**: [https://your-api.railway.app/docs](https://your-api.railway.app/docs)
-
-## 📞 **Support**
-
-For questions or support, please create an issue in the repository or contact [your-email@example.com](mailto:your-email@example.com).
-
----
-
-**Happy Interviewing! 🎯**

@@ -183,7 +183,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               </Button>
             }
           >
-            Demo Credentials: <strong>username: admin, password: admin</strong>
+            Please Wait if loading as the render server may take up to 60 seconds to allocate server <strong>username: admin, password: admin</strong>
           </Alert>
 
           {/* Tabs */}
