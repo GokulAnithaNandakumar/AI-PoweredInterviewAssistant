@@ -205,26 +205,17 @@ class AnswerEvaluatorAgent:
     def __init__(self):
         pass  # No need to initialize model, we'll use REST API
 
-    def evaluate_answer(self, question: Dict[str, Any], answer: str, resume_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Evaluate the candidate's answer using AI, using the session's role."""
+    def evaluate_answer(self, question: Dict[str, Any], answer: str) -> Dict[str, Any]:
+        """Evaluate the candidate's answer using AI - simple question and answer evaluation."""
 
-        role = resume_data.get('role', '')
         prompt = f"""
-        You are an expert technical interviewer evaluating a {role} candidate's answer.
+        You are an expert technical interviewer evaluating a candidate's answer.
 
         Question Details:
         - Question: {question['question']}
         - Difficulty: {question['difficulty']}
-        - Category: {question.get('category', 'General')}
-        - Expected Answer Length: {question.get('expected_answer_length', 'detailed')}
-        - Evaluation Criteria: {', '.join(question.get('evaluation_criteria', []))}
 
         Candidate's Answer: "{answer}"
-
-        Candidate Background:
-        - Experience: {resume_data.get('experience', 'Not specified')}
-        - Skills: {resume_data.get('skills', 'Not specified')}
-        - Role: {role}
 
         Evaluate this answer and provide:
         1. A score from 0-10 (10 being perfect)

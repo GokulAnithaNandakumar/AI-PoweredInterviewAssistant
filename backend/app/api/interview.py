@@ -438,23 +438,32 @@ async def submit_answer(
         'role': getattr(session, 'role', None)
     }
 
+    # Get the actual question from the database
+    question_record = db.query(InterviewQuestion).filter(
+        InterviewQuestion.session_id == session.id,
+        InterviewQuestion.question_number == question_number
+    ).first()
+
+    if not question_record:
+        raise HTTPException(status_code=404, detail=f"Question {question_number} not found")
+
     # Evaluate answer using AI
     try:
         question_context = {
-            'question': f"Question {question_number}",  # We don't store the actual question text
-            'difficulty': difficulty,
-            'time_limit': time_limit,
-            'category': 'Fullstack',
-            'evaluation_criteria': ['Technical accuracy', 'Clarity', 'Depth of understanding']
+            'question': question_record.question_text,
+            'difficulty': question_record.difficulty,
+            'time_limit': question_record.time_limit,
+            'category': 'General',  # Default category since it's not stored in DB
+            'evaluation_criteria': ['Technical accuracy', 'Clarity', 'Depth of understanding']  # Default criteria
         }
 
         evaluation = evaluator_agent.evaluate_answer(
             question=question_context,
-            answer=answer_data.answer or "",
-            resume_data=resume_data,
-            role=resume_data['role']
+            answer=answer_data.answer or ""
         )
+        print(f"AI Evaluation successful: {evaluation}")
     except Exception as e:
+        print(f"AI evaluation failed: {e}")
         # Fallback evaluation if AI fails
         evaluation = {
             'score': 5,
